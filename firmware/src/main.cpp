@@ -12,6 +12,10 @@
 #include "idle.h"
 #include "idle_cfg.h"
 #include "brightness.h"
+#include "wifi_bridge.h"
+#ifdef USE_WIFI_BRIDGE
+#include "wifi_config.generated.h"
+#endif
 
 #include "hal/board_caps.h"
 #include "hal/display_hal.h"
@@ -107,6 +111,7 @@ static bool parse_json(const char* json, UsageData* out) {
     }
 
     out->session_pct = doc["s"] | 0.0f;
+    strlcpy(out->provider, doc["p"] | "claude", sizeof(out->provider));
     out->session_reset_mins = doc["sr"] | -1;
     out->weekly_pct = doc["w"] | 0.0f;
     out->weekly_reset_mins = doc["wr"] | -1;
@@ -121,6 +126,17 @@ static bool parse_json(const char* json, UsageData* out) {
     out->clock_fmt = doc["tf"] | 24;
     out->ok = doc["ok"] | false;
     out->valid = true;
+    return true;
+}
+
+static bool process_usage_json(const char* json) {
+    if (!parse_json(json, &usage)) return false;
+    int g_before = usage_rate_group();
+    bool session_reset = usage_rate_sample(usage.session_pct);
+    int g_after = usage_rate_group();
+    if (session_reset && usage.chime) sound_hal_play_reset();
+    if (g_after != g_before && splash_is_active()) splash_pick_for_current_rate();
+    ui_update(&usage);
     return true;
 }
 
@@ -225,15 +241,27 @@ void setup() {
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(indev, my_touch_cb);
 
+#ifdef USE_WIFI_BRIDGE
+    wifi_bridge_init();
+#else
     ble_init();
+#endif
     input_hal_init();
 
     ui_init();
+#ifdef USE_WIFI_BRIDGE
+    ui_update_ble_status(BLE_STATE_ADVERTISING, DEVICE_NAME, "");
+#else
     ui_update_ble_status(ble_get_state(), ble_get_device_name(), ble_get_mac_address());
+#endif
     ui_update_battery(power_hal_battery_pct(), power_hal_is_charging());
     ui_show_screen(SCREEN_SPLASH);
 
+#ifdef USE_WIFI_BRIDGE
+    Serial.printf("Dashboard ready (%s, %dx%d), waiting for data over WiFi...\n",
+#else
     Serial.printf("Dashboard ready (%s, %dx%d), waiting for data on BLE...\n",
+#endif
         board_caps().name, W, H);
 }
 
@@ -289,7 +317,11 @@ void loop() {
     idle_tick();
     lv_timer_handler();
     ui_tick_anim();
+#ifdef USE_WIFI_BRIDGE
+    wifi_bridge_tick();
+#else
     ble_tick();
+#endif
     power_hal_tick();
     imu_hal_tick();
     sound_hal_tick();
@@ -342,20 +374,35 @@ void loop() {
 
         if (power_hal_pwr_pressed()) {
             if (!idle_consume_wake_press()) {
+#ifdef BOARD_CYD_28
+                // CYD has no power key: a normal screen tap starts/restarts
+                // pairing only while disconnected. LVGL handles menu taps.
+#ifdef USE_WIFI_BRIDGE
+                if (!wifi_bridge_is_connected()) wifi_bridge_reconnect();
+#else
+                if (ble_get_state() != BLE_STATE_CONNECTED) ble_clear_bonds();
+#endif
+#else
                 // On splash: cycle animations. On the usage view: cycle
                 // screen brightness (single non-splash view, no more screens).
                 if (ui_get_current_screen() == SCREEN_SPLASH) splash_next();
                 else                                          brightness_cycle();
+#endif
             }
         }
 
         pair_tick();
     }
 
+#ifdef USE_WIFI_BRIDGE
+    ble_state_t bs = wifi_bridge_is_connected()
+                   ? BLE_STATE_CONNECTED : BLE_STATE_ADVERTISING;
+#else
     ble_state_t bs = ble_get_state();
+#endif
     if (bs != last_ble_state) {
         last_ble_state = bs;
-        ui_update_ble_status(bs, ble_get_device_name(), ble_get_mac_address());
+        ui_update_ble_status(bs, DEVICE_NAME, "");
     }
 
     static int  last_pct      = -2;
@@ -363,7 +410,9 @@ void loop() {
     int  pct      = power_hal_battery_pct();
     bool charging = power_hal_is_charging();
     if (pct != last_pct || charging != last_charging) {
+#ifndef USE_WIFI_BRIDGE
         if (pct != last_pct) ble_set_battery_level(pct);
+#endif
         last_pct = pct;
         last_charging = charging;
         ui_update_battery(pct, charging);
@@ -371,6 +420,10 @@ void loop() {
 
     check_serial_cmd();
 
+#ifdef USE_WIFI_BRIDGE
+    String bridge_json;
+    if (wifi_bridge_pop(bridge_json)) process_usage_json(bridge_json.c_str());
+#else
     if (ble_has_data()) {
         if (parse_json(ble_get_data(), &usage)) {
             int g_before = usage_rate_group();
@@ -394,6 +447,7 @@ void loop() {
             ble_send_nack();
         }
     }
+#endif
 
     delay(5);
 }

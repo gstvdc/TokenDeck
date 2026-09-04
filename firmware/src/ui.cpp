@@ -4,8 +4,12 @@
 #include <time.h>
 #include "logo.h"
 #include "clawd_still.h"
+#include "gpt_logo.h"
 #include "icons.h"
 #include "hal/board_caps.h"
+#ifdef USE_WIFI_BRIDGE
+#include "wifi_bridge.h"
+#endif
 
 // Custom fonts (scaled for 314 PPI, ~1.9x from original 165 PPI)
 LV_FONT_DECLARE(font_tiempos_56);
@@ -220,7 +224,16 @@ static lv_obj_t* lbl_anim;      // status line: connection state + whimsical idl
 // ---- Battery indicator (shared, on top) ----
 static lv_obj_t* battery_img;
 static lv_obj_t* logo_img;
+static lv_obj_t* claude_tab;
+static lv_obj_t* codex_tab;
 static lv_image_dsc_t battery_dscs[5];  // empty, low, medium, full, charging
+
+enum provider_tab_t { PROVIDER_CLAUDE = 0, PROVIDER_CODEX = 1 };
+static provider_tab_t active_provider = PROVIDER_CODEX;
+static UsageData provider_data[2] = {};
+static bool provider_has_data[2] = {false, false};
+static bool provider_ok[2] = {false, false};
+static uint32_t provider_last_ms[2] = {0, 0};
 
 // ---- Live-data freshness → which usage sub-view to show ----
 // usage panels when data is flowing, an idle "Zzz" screen when the host is
@@ -235,6 +248,7 @@ static const uint32_t DATA_FRESH_MS = 90000;  // usage counts as "live" within t
 
 // ---- Shared ----
 static lv_image_dsc_t logo_dsc;
+static lv_image_dsc_t gpt_logo_dsc;
 static screen_t current_screen = SCREEN_USAGE;
 static bool     s_ble_connected = false;   // cached BLE connection state
 static uint32_t connected_at_ms = 0;       // when we last entered CONNECTED ("Connected" dwell)
@@ -313,6 +327,10 @@ static void format_reset_time(int mins, char* buf, size_t len) {
 
 // Forward decls — callbacks defined near ui_show_screen below
 static void global_click_cb(lv_event_t* e);
+static void provider_click_cb(lv_event_t* e);
+static void pair_click_cb(lv_event_t* e);
+static void update_provider_tabs(void);
+static void render_usage(const UsageData* data);
 
 static lv_obj_t* make_panel(lv_obj_t* parent, int x, int y, int w, int h) {
     lv_obj_t* panel = lv_obj_create(parent);
@@ -424,22 +442,39 @@ static void build_pair_group(lv_obj_t* parent) {
     lv_obj_set_style_border_width(pair_group, 0, 0);
     lv_obj_set_style_pad_all(pair_group, 0, 0);
     lv_obj_clear_flag(pair_group, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(pair_group, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_flag(pair_group, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(pair_group, pair_click_cb, LV_EVENT_CLICKED, NULL);
 
     lv_obj_t* l1 = lv_label_create(pair_group);
+#ifdef USE_WIFI_BRIDGE
+    lv_label_set_text(l1, "WiFi");
+#else
     lv_label_set_text(l1, "To pair");
+#endif
     lv_obj_set_style_text_font(l1, L.bt_status_font, 0);
     lv_obj_set_style_text_color(l1, COL_TEXT, 0);
     lv_obj_align(l1, LV_ALIGN_TOP_MID, 0, L.pair_y1);
 
     lv_obj_t* l2 = lv_label_create(pair_group);
+#ifdef BOARD_CYD_28
+#ifdef USE_WIFI_BRIDGE
+    lv_label_set_text(l2, "connecting...");
+#else
+    lv_label_set_text(l2, "tap the screen");
+#endif
+#else
     lv_label_set_text(l2, "hold the power button");
+#endif
     lv_obj_set_style_text_font(l2, L.bt_device_font, 0);
     lv_obj_set_style_text_color(l2, COL_DIM, 0);
     lv_obj_align(l2, LV_ALIGN_TOP_MID, 0, L.pair_y2);
 
     lv_obj_t* l3 = lv_label_create(pair_group);
-    lv_label_set_text(l3, "for 3 seconds, then release");
+#ifdef USE_WIFI_BRIDGE
+    lv_label_set_text(l3, "tap to retry");
+#else
+    lv_label_set_text(l3, "once to pair");
+#endif
     lv_obj_set_style_text_font(l3, L.bt_device_font, 0);
     lv_obj_set_style_text_color(l3, COL_DIM, 0);
     lv_obj_align(l3, LV_ALIGN_TOP_MID, 0, L.pair_y3);
@@ -554,6 +589,7 @@ void ui_init(void) {
     if (L.small_icons) init_icon_dsc_rgb565a8(&logo_dsc, CLAWD_STILL_SMALL_W, CLAWD_STILL_SMALL_H, clawd_still_small_data);
     else               init_icon_dsc_rgb565a8(&logo_dsc, CLAWD_STILL_W, CLAWD_STILL_H, clawd_still_data);
 #endif
+    init_icon_dsc_rgb565a8(&gpt_logo_dsc, GPT_LOGO_W, GPT_LOGO_H, gpt_logo_data);
     init_battery_icons();
 
     init_usage_screen(scr);
@@ -573,11 +609,28 @@ void ui_init(void) {
         // Animated: idles, does acts, and takes walk-off/lurk trips.
         splash_mascot_create(scr, L.margin, top + art_h, L.small_icons ? 2 : 3);
 #else
-        logo_img = lv_image_create(scr);
+        logo_img = lv_image_create(usage_container);
         lv_image_set_src(logo_img, &logo_dsc);
         lv_obj_set_pos(logo_img, L.margin, top);
+        claude_tab = logo_img;
+        lv_obj_add_flag(claude_tab, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(claude_tab, provider_click_cb, LV_EVENT_CLICKED, NULL);
 #endif
     }
+
+    // Single provider toggle: the visible icon identifies the active provider.
+    codex_tab = lv_button_create(usage_container);
+    const int tab_size = L.small_icons ? 38 : 48;
+    lv_obj_set_size(codex_tab, tab_size, tab_size);
+    lv_obj_set_pos(codex_tab, L.margin, L.logo_y);
+    lv_obj_set_style_radius(codex_tab, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_shadow_width(codex_tab, 0, 0);
+    lv_obj_set_style_pad_all(codex_tab, 0, 0);
+    lv_obj_add_event_cb(codex_tab, provider_click_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_t* gpt_icon = lv_image_create(codex_tab);
+    lv_image_set_src(gpt_icon, &gpt_logo_dsc);
+    lv_obj_center(gpt_icon);
+    update_provider_tabs();
 
     battery_img = lv_image_create(scr);
     lv_image_set_src(battery_img, &battery_dscs[0]);
@@ -590,7 +643,7 @@ void ui_init(void) {
     }
 }
 
-void ui_update(const UsageData* data) {
+static void render_usage(const UsageData* data) {
     if (!data->valid) return;
     data_ok = data->ok;
     if (!data->ok) return;          // a {"ok":false} "no data" beat → fall through to idle, keep last numbers
@@ -607,6 +660,13 @@ void ui_update(const UsageData* data) {
         lv_label_set_text(lbl_title, "Usage");
     }
 
+    const bool is_codex = strcmp(data->provider, "codex") == 0;
+    clock_base_epoch = 0;
+    clock_last_min = -1;
+    lv_label_set_text(lbl_title, "Usage");
+    lv_label_set_text(lbl_session_label, is_codex ? "5 hours" : "Current");
+    lv_label_set_text(lbl_weekly_label, "Weekly");
+
     int s_pct = (int)(data->session_pct + 0.5f);
 
     if (data->enterprise) {
@@ -620,7 +680,7 @@ void ui_update(const UsageData* data) {
         if (panel_weekly) lv_obj_clear_flag(panel_weekly, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_set_style_text_font(lbl_session_pct, L.pct_font, 0);
-        lv_label_set_text(lbl_session_label, "Current");
+        lv_label_set_text(lbl_session_label, is_codex ? "5 hours" : "Current");
         lv_obj_clear_flag(lbl_session_reset, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(lbl_session_pct_sym, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(lbl_spending_desc,   LV_OBJ_FLAG_HIDDEN);
@@ -673,6 +733,22 @@ void ui_update(const UsageData* data) {
         format_reset_time(data->weekly_reset_mins, buf, sizeof(buf));
         lv_label_set_text(lbl_weekly_reset, buf);
     }
+}
+
+void ui_update(const UsageData* data) {
+    if (!data->valid) return;
+    const provider_tab_t provider = strcmp(data->provider, "codex") == 0
+                                  ? PROVIDER_CODEX : PROVIDER_CLAUDE;
+    const int idx = (int)provider;
+    provider_data[idx] = *data;
+    provider_ok[idx] = data->ok;
+    if (data->ok) {
+        provider_has_data[idx] = true;
+        provider_last_ms[idx] = lv_tick_get();
+    }
+    if (provider != active_provider) return;
+    render_usage(data);
+    provider_last_ms[idx] = last_data_ms;
 }
 
 // Pick the usage-view sub-screen: pairing hint (BLE down), the idle "Zzz" screen
@@ -766,7 +842,62 @@ static void apply_battery_visibility(void) {
 static void global_click_cb(lv_event_t* e) {
     (void)e;
     if (current_screen == SCREEN_SPLASH) ui_show_screen(prev_non_splash_screen);
-    else                                  ui_show_screen(SCREEN_SPLASH);
+}
+
+static void pair_click_cb(lv_event_t* e) {
+    lv_event_stop_bubbling(e);
+    if (!s_ble_connected) {
+#ifdef USE_WIFI_BRIDGE
+        wifi_bridge_reconnect();
+        lv_label_set_text(lbl_anim, "Connecting...");
+#else
+        ble_clear_bonds();
+        lv_label_set_text(lbl_anim, "Pairing...");
+#endif
+    }
+}
+
+static void update_provider_tabs(void) {
+    if (claude_tab) {
+        if (active_provider == PROVIDER_CLAUDE)
+            lv_obj_clear_flag(claude_tab, LV_OBJ_FLAG_HIDDEN);
+        else
+            lv_obj_add_flag(claude_tab, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (codex_tab) {
+        if (active_provider == PROVIDER_CODEX)
+            lv_obj_clear_flag(codex_tab, LV_OBJ_FLAG_HIDDEN);
+        else
+            lv_obj_add_flag(codex_tab, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_style_bg_color(codex_tab, COL_PANEL, 0);
+        lv_obj_set_style_bg_opa(codex_tab, LV_OPA_COVER, 0);
+        lv_obj_set_style_border_width(codex_tab, 1, 0);
+        lv_obj_set_style_border_color(codex_tab, COL_DIM, 0);
+    }
+}
+
+static void provider_click_cb(lv_event_t* e) {
+    lv_event_stop_bubbling(e);
+    active_provider = active_provider == PROVIDER_CODEX
+                    ? PROVIDER_CLAUDE : PROVIDER_CODEX;
+    update_provider_tabs();
+
+    const int idx = (int)active_provider;
+    data_received = provider_has_data[idx];
+    data_ok = provider_ok[idx];
+    last_data_ms = provider_last_ms[idx];
+    clock_base_epoch = 0;
+    clock_last_min = -1;
+
+    if (provider_has_data[idx]) {
+        const uint32_t saved_ms = provider_last_ms[idx];
+        render_usage(&provider_data[idx]);
+        last_data_ms = saved_ms;  // switching tabs must not make old data fresh
+    } else {
+        lv_label_set_text(lbl_title, "Usage");
+    }
+    view_state = -1;
+    update_view_state();
 }
 
 void ui_show_screen(screen_t screen) {
@@ -780,9 +911,11 @@ void ui_show_screen(screen_t screen) {
     }
 
     splash_mascot_set_visible(screen != SCREEN_SPLASH);
-    if (logo_img) {
-        if (screen == SCREEN_SPLASH) lv_obj_add_flag(logo_img, LV_OBJ_FLAG_HIDDEN);
-        else                          lv_obj_clear_flag(logo_img, LV_OBJ_FLAG_HIDDEN);
+    if (screen == SCREEN_SPLASH) {
+        if (logo_img) lv_obj_add_flag(logo_img, LV_OBJ_FLAG_HIDDEN);
+        if (codex_tab) lv_obj_add_flag(codex_tab, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        update_provider_tabs();
     }
 
     if (screen != SCREEN_SPLASH) prev_non_splash_screen = screen;
@@ -792,7 +925,6 @@ void ui_show_screen(screen_t screen) {
 
 void ui_toggle_splash(void) {
     if (current_screen == SCREEN_SPLASH) ui_show_screen(prev_non_splash_screen);
-    else                                  ui_show_screen(SCREEN_SPLASH);
 }
 
 screen_t ui_get_current_screen(void) {

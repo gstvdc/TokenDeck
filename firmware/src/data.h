@@ -2,6 +2,7 @@
 #include <Arduino.h>
 
 struct UsageData {
+    char provider[12];        // "claude" or "codex"
     float session_pct;       // utilization 0-100 (5h window Pro/Max; spending % Enterprise)
     int session_reset_mins;  // minutes until reset
     float weekly_pct;        // 7-day utilization (Pro/Max only; 0 for Enterprise)
