@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <b>Painel de monitoramento de uso de IA em tempo real para Codex (GPT), Claude Code e Gemini.</b><br>
-  <i>Hardware de mesa (CYD 2.8" USB) + Aplicativo Desktop Moderno para Windows.</i>
+  <b>Real-time AI quota and rate-limit monitor for Codex (GPT), Claude Code, and Gemini.</b><br>
+  <i>Desktop hardware monitor (CYD 2.8" USB) + Modern Windows Studio Application.</i>
 </p>
 
 <p align="center">
@@ -19,32 +19,32 @@
 
 ---
 
-## O que é o TokenDeck?
+## What is TokenDeck?
 
-O **TokenDeck** é uma central unificada para acompanhar os limites de 5 horas e cotas semanais dos principais assistentes de IA de desenvolvimento.
+**TokenDeck** is a unified dashboard and hardware display hub designed to monitor 5-hour quota windows, weekly limits, and operational status across major AI coding assistants.
 
-Ele monitora simultaneamente os 3 principais ecossistemas:
-* **Codex / GPT (OpenAI)**: Lê os limites de janela de 5h e semanais diretamente dos registros de sessão locais.
-* **Claude Code (Anthropic)**: Consulta a utilização da conta e limites de requisição em tempo real via API oficial.
-* **Gemini (Google)**: Consulta as cotas oficiais do grupo Gemini Models via Antigravity CLI (`agy -p /usage --output-format json`), com tempos de renovação ajustados com precisão.
+It tracks all 3 primary developer ecosystems in real time:
+* **Codex / GPT (OpenAI)**: Reads 5-hour and weekly usage limits directly from local session logs.
+* **Claude Code (Anthropic)**: Queries account rate limits and utilization in real time via the official API.
+* **Gemini (Google)**: Fetches official Gemini Models group quota via Antigravity CLI (`agy -p /usage --output-format json`) with high-precision reset countdowns.
 
-E exibe esses dados em dois ambientes integrados:
-1. **Desktop GUI (TokenDeck Studio)**: Interface moderna em Dark Mode acelerada por GPU, com transições suaves, modo foco dinâmico, modo 1:1:1, controle de brilho e atalhos de gerenciamento da bridge.
-2. **Display de Mesa CYD 2.8" (ESP32)**: Conectado diretamente via cabo de dados USB (COM4 / CH340), com alternância inteligente de tela e brilho ajustável salvo na memória NVS.
+TokenDeck presents this telemetry through two synchronized environments:
+1. **Desktop GUI (TokenDeck Studio)**: GPU-accelerated Dark Mode desktop application featuring smooth transitions, dynamic hover focus mode, 1:1:1 split mode, display brightness control, and integrated bridge management.
+2. **Desk Hardware Monitor (CYD 2.8" ESP32)**: Connected directly via USB serial (COM4 / CH340), featuring intelligent screen switching and non-volatile (NVS) flash memory brightness persistence.
 
 ---
 
-## Demonstração Visual
+## Visual Overview
 
 <div align="center">
   <table>
     <tr>
-      <th align="center">Display Físico de Mesa (CYD 2.8" ESP32)</th>
-      <th align="center">Aplicativo Desktop (TokenDeck Studio)</th>
+      <th align="center">Physical Desk Display (CYD 2.8" ESP32)</th>
+      <th align="center">Desktop Application (TokenDeck Studio)</th>
     </tr>
     <tr>
       <td align="center" width="45%">
-        <img src="screenshots/cyd_esp32_hardware.png" alt="Display CYD 2.8 ESP32 em Funcionamento" width="100%" />
+        <img src="screenshots/cyd_esp32_hardware.png" alt="CYD 2.8 ESP32 Hardware Display Running" width="100%" />
       </td>
       <td align="center" width="55%">
         <img src="screenshots/tokendeck_studio_gui.png" alt="TokenDeck Studio Desktop Dashboard" width="100%" />
@@ -55,90 +55,90 @@ E exibe esses dados em dois ambientes integrados:
 
 ---
 
-## Recursos Principais
+## Key Features
 
-* **Layout Edge-to-Edge Responsivo**: 3 painéis integrados lado a lado cobrindo toda a extensão da janela com separadores limpos de 1px.
-* **Modo Foco Dinâmico**: Ao passar o mouse sobre qualquer card, ele se expande exibindo gráficos detalhados de distribuição de quota (janela 5h e semanal), status operacional e registros de atividade.
-* **Modo Dividido (1:1:1)**: Botão "Manter 3 Iguais" para fixar as 3 abas abertas simultaneamente em largura uniforme.
-* **Controle de Brilho ESP32 em Tempo Real**: Slider dedicado na barra superior com comunicação serial direta (`BRIGHT:<0-100>`) e persistência automática na memória flash (NVS) do display CYD.
-* **Alternância Automática de Tela**: A tela física do CYD detecta a IA em uso no computador e muda a exibição instantaneamente para o modelo ativo.
-* **Iconografia Vetorial**: Interface 100% vetorial utilizando Lucide Icons e logos oficiais.
-* **Gerenciamento Integrado**: Botões com um clique para Iniciar/Parar a Bridge USB, Gravar Firmware (com liberação automática de porta COM) e Atualizar Métricas.
+* **Responsive Edge-to-Edge Layout**: 3 integrated panels positioned seamlessly side-by-side with 1px hairline dividers.
+* **Dynamic Hover Focus Mode**: Hovering over any card expands it with detailed quota distribution charts (5-hour and weekly windows), operational status, and activity timestamps.
+* **Split View Mode (1:1:1)**: "Keep 3 Equal" button locks all 3 cards in uniform width simultaneously.
+* **Real-time ESP32 Brightness Control**: Dedicated toolbar slider with direct serial communication (`BRIGHT:<0-100>`) and automatic persistence in ESP32 NVS memory.
+* **Automatic Screen Switching**: The CYD hardware display detects active AI conversations on the computer and switches screens instantly to match the active assistant.
+* **Vector Iconography**: 100% vector-based UI using Lucide vector icons and official branding.
+* **Integrated Management**: One-click controls to Start/Stop the USB Serial Bridge, Flash Firmware (with automatic COM port release), and Refresh Metrics.
 
 ---
 
-## Arquitetura do Sistema
+## System Architecture
 
 ```text
     [ OpenAI Codex ]       [ Anthropic Claude ]       [ Google Gemini ]
-   (Arquivos de Sessão)     (Credenciais / API)       (Antigravity CLI)
+   (Local Session Logs)    (Credentials / API)        (Antigravity CLI)
             │                       │                        │
             └───────────────────────┼────────────────────────┘
                                     │
                                     ▼
                     ┌───────────────────────────────┐
-                    │     TokenDeck Bridge Python   │
+                    │     TokenDeck Python Bridge   │
                     │  (usage_serial_bridge_windows)│
                     └───────────────┬───────────────┘
                                     │
                  ┌──────────────────┴──────────────────┐
                  ▼                                     ▼
       ┌─────────────────────┐               ┌─────────────────────┐
-      │  Tela CYD 2.8" ESP32│               │  TokenDeck Desktop  │
+      │  CYD 2.8" ESP32 LCD │               │  TokenDeck Desktop  │
       │  (USB Serial COM4)  │               │   (Studio GUI App)  │
-      │  Alterna automatica-│               │  Visão simultânea   │
-      │  mente com atividade│               │  dos 3 modelos      │
+      │  Auto-switches with │               │  Simultaneous view  │
+      │  active assistant   │               │  of all 3 models    │
       └─────────────────────┘               └─────────────────────┘
 ```
 
 ---
 
-## Como Usar no Windows
+## Getting Started on Windows
 
-### 1. Pré-requisitos
-* Windows 10 ou 11
+### 1. Prerequisites
+* Windows 10 or 11
 * Python 3.11+
-* Antigravity CLI (`agy`) autenticado para métricas do Gemini
-* Cabo USB conectado à porta CH340 da sua CYD (normalmente **COM4**)
+* Antigravity CLI (`agy`) authenticated for Gemini metrics
+* USB data cable connected to the CH340 port on the CYD (typically **COM4**)
 
-### 2. Configuração Inicial
-Abra o PowerShell na pasta raiz do projeto:
+### 2. Initial Setup
+Open PowerShell in the project root directory:
 
 ```powershell
-# Criação do ambiente virtual e instalação de dependências
+# Create virtual environment and install dependencies
 python -m venv daemon\.venv
 & "daemon\.venv\Scripts\python.exe" -m pip install -r daemon\requirements-windows.txt
 ```
 
 ---
 
-## Comandos e Atalhos Rápidos
+## Commands and Quick Shortcuts
 
-Você pode iniciar as ferramentas diretamente pelo PowerShell, pelo atalho na Área de Trabalho com o ícone oficial ou pelos arquivos executáveis:
+Launch tools directly from PowerShell, via the Desktop shortcut with the official icon, or using `.cmd` scripts:
 
-| Ação | Atalho / Executável | Comando PowerShell | Descrição |
+| Action | Shortcut / Executable | PowerShell Command | Description |
 | :--- | :--- | :--- | :--- |
-| **Abrir App Desktop (Ícone)** | `TokenDeck.lnk` (Área de Trabalho) | `.\tokendeck-gui` | Abre o dashboard visual sem janela preta de terminal, com o ícone oficial do projeto. |
-| **Iniciar Bridge USB** | `tokendeck-server.cmd` | `.\tokendeck-server` | Inicia o envio de métricas a cada 5s para o display físico CYD. |
-| **Gravar Firmware** | `tokendeck-record.cmd` | `.\tokendeck-record` | Compila e grava o firmware na placa CYD via PlatformIO. |
-| **Recriar Atalhos** | `create-shortcut.ps1` | `.\create-shortcut.ps1` | Gera/atualiza o atalho com ícone na Área de Trabalho e na pasta do projeto. |
+| **Open Desktop App (Icon)** | `TokenDeck.lnk` (Desktop) | `.\tokendeck-gui` | Launches the Studio dashboard silently without terminal windows. |
+| **Start USB Bridge** | `tokendeck-server.cmd` | `.\tokendeck-server` | Starts the 5-second serial telemetry bridge to the CYD display. |
+| **Flash Firmware** | `tokendeck-record.cmd` | `.\tokendeck-record` | Compiles and flashes the firmware to the CYD board via PlatformIO. |
+| **Recreate Shortcuts** | `create-shortcut.ps1` | `.\create-shortcut.ps1` | Generates or updates the Desktop and project shortcuts with the icon. |
 
 ---
 
-## Hardware Suportado
+## Supported Hardware
 
-* **Principal (Recomendado):**
-  - **CYD 2.8-inch / ESP32-2432S028R** (Conexão direta USB CH340 no Windows).
-* **Hardware Alternativo / BLE (Legado):**
+* **Primary (Recommended):**
+  - **CYD 2.8-inch / ESP32-2432S028R** (Direct USB CH340 connection on Windows).
+* **Alternative / Legacy BLE Hardware:**
   - Waveshare ESP32-S3-Touch-AMOLED (2.16", 1.8", 2.06")
   - Waveshare ESP32-C6-Touch-AMOLED-2.16
   - Waveshare ESP32-S3-Touch-LCD (1.54", 4.0")
 
 ---
 
-## Testes Automatizados
+## Automated Test Suite
 
-A suíte de testes cobre o daemon de monitoramento, integração serial e persistência de estado:
+The test suite validates the monitoring daemons, serial telemetry protocol, and state persistence:
 
 ```powershell
 & "daemon\.venv\Scripts\python.exe" -m pytest daemon\tests
@@ -146,6 +146,6 @@ A suíte de testes cobre o daemon de monitoramento, integração serial e persis
 
 ---
 
-## Privacidade e Segurança
+## Privacy and Security
 
-O TokenDeck lê exclusivamente marcadores de limites de taxa (*rate limits*) e registros de data e hora de arquivos de sessão locais. **Ele nunca lê, armazena ou transmite seus prompts, conversas ou chaves privadas.**
+TokenDeck strictly reads rate-limit quotas and timestamps from local session logs and APIs. **It never reads, stores, or transmits prompts, conversation contents, or private keys.**
