@@ -77,13 +77,13 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> None:
     threading.Thread(target=refresh_loop, daemon=True).start()
-    print(f"TokenMeter bridge: http://{HOST}:{PORT}")
+    print(f"TokenDeck bridge: http://{HOST}:{PORT}")
     print("Pressione Ctrl+C para parar.")
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\nTokenMeter bridge finalizado.")
+        print("\nTokenDeck bridge finalizado.")
     finally:
         server.server_close()
 

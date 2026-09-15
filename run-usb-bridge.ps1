@@ -1,7 +1,7 @@
 $createdNew = $false
-$mutex = New-Object System.Threading.Mutex($true, "Local\TokenMeterUsbBridge", [ref]$createdNew)
+$mutex = New-Object System.Threading.Mutex($true, "Local\TokenDeckUsbBridge", [ref]$createdNew)
 if (-not $createdNew) {
-    Write-Host "A bridge TokenMeter ja esta em execucao."
+    Write-Host "A bridge TokenDeck ja esta em execucao."
     $mutex.Dispose()
     exit 0
 }

@@ -154,12 +154,14 @@ def read_gemini_payload() -> dict:
     if not agy:
         return {"p": "gemini", "ok": False, "st": "unavailable"}
     try:
+        no_window_flag = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
         result = subprocess.run(
             [agy, "-p", "/usage", "--output-format", "json"],
             capture_output=True,
             check=False,
             text=True,
             timeout=30,
+            creationflags=no_window_flag,
         )
     except (OSError, subprocess.TimeoutExpired):
         return {"p": "gemini", "ok": False, "st": "unavailable"}

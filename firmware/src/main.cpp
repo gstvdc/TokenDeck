@@ -16,7 +16,7 @@
 #ifdef USE_WIFI_BRIDGE
 #include "wifi_config.generated.h"
 #else
-#define DEVICE_NAME "TokenMeter"
+#define DEVICE_NAME "TokenDeck"
 #endif
 
 #include "hal/board_caps.h"

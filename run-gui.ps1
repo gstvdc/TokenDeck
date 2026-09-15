@@ -3,8 +3,12 @@ try {
     if (-not (Test-Path $pythonExe)) {
         $pythonExe = "python"
     }
-    $guiScript = (Resolve-Path "${PSScriptRoot}\tokenmeter_gui.py").Path
-    & $pythonExe $guiScript
+    $guiScript = "${PSScriptRoot}\tokendeck_gui.py"
+    if (-not (Test-Path $guiScript)) {
+        $guiScript = "${PSScriptRoot}\tokenmeter_gui.py"
+    }
+    $resolvedGui = (Resolve-Path $guiScript).Path
+    & $pythonExe $resolvedGui
     exit $LASTEXITCODE
 } catch {
     Write-Error $_

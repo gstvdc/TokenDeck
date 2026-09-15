@@ -93,13 +93,14 @@ python -m venv daemon\.venv
 
 ## Comandos e Atalhos Rápidos
 
-Você pode iniciar as ferramentas diretamente pelo PowerShell ou com dois cliques nos arquivos `.cmd` pelo Windows Explorer:
+Você pode iniciar as ferramentas diretamente pelo PowerShell, pelo atalho na Área de Trabalho com o ícone oficial ou pelos arquivos executáveis:
 
-| Ação | Comando PowerShell | Executável (.cmd) | Descrição |
+| Ação | Atalho / Executável | Comando PowerShell | Descrição |
 | :--- | :--- | :--- | :--- |
-| **Abrir App Desktop** | `.\tokendeck-gui` | `tokendeck.cmd` | Inicia o painel visual com todos os 3 modelos, controle de brilho e bridge. |
-| **Iniciar Bridge USB** | `.\tokendeck-server` | `tokendeck-server.cmd` | Inicia o envio de métricas a cada 5s para o display físico CYD. |
-| **Gravar Firmware** | `.\tokendeck-record` | `tokendeck-record.cmd` | Compila e grava o firmware na placa CYD via PlatformIO. |
+| **Abrir App Desktop (Ícone)** | `TokenDeck.lnk` (Área de Trabalho) | `.\tokendeck-gui` | Abre o dashboard visual sem janela preta de terminal, com o ícone oficial do projeto. |
+| **Iniciar Bridge USB** | `tokendeck-server.cmd` | `.\tokendeck-server` | Inicia o envio de métricas a cada 5s para o display físico CYD. |
+| **Gravar Firmware** | `tokendeck-record.cmd` | `.\tokendeck-record` | Compila e grava o firmware na placa CYD via PlatformIO. |
+| **Recriar Atalhos** | `create-shortcut.ps1` | `.\create-shortcut.ps1` | Gera/atualiza o atalho com ícone na Área de Trabalho e na pasta do projeto. |
 
 ---
 
