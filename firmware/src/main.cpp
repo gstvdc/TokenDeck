@@ -112,6 +112,22 @@ static bool parse_json(const char* json, UsageData* out) {
         return false;
     }
 
+    if (doc["brt"].is<int>()) {
+        int b = doc["brt"].as<int>();
+        if (b < 5) b = 5;
+        if (b > 255) b = 255;
+        brightness_set((uint8_t)b);
+    } else if (doc["brightness"].is<int>()) {
+        int b = doc["brightness"].as<int>();
+        if (b < 5) b = 5;
+        if (b > 255) b = 255;
+        brightness_set((uint8_t)b);
+    }
+
+    if (!doc["p"].is<const char*>() && !doc["ok"].is<bool>()) {
+        return false;
+    }
+
     out->session_pct = doc["s"] | 0.0f;
     strlcpy(out->provider, doc["p"] | "claude", sizeof(out->provider));
     strlcpy(out->active, doc["a"] | "", sizeof(out->active));
@@ -197,6 +213,13 @@ static void check_serial_cmd() {
 #ifdef USE_USB_SERIAL_BRIDGE
                 process_usage_json(cmd_buf);
 #endif
+            } else if (strncmp(cmd_buf, "brightness ", 11) == 0) {
+                int val = atoi(cmd_buf + 11);
+                if (val < 5) val = 5;
+                if (val > 255) val = 255;
+                brightness_set((uint8_t)val);
+            } else if (strcmp(cmd_buf, "brightness") == 0) {
+                Serial.printf("{\"brightness\":%u}\n", brightness_get());
             } else if (strcmp(cmd_buf, "screenshot") == 0) send_screenshot();
             else if (strcmp(cmd_buf, "buzz") == 0)  sound_hal_play_reset();
             cmd_pos = 0;

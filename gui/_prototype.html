@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TokenDeck Studio</title>
+  <link rel="icon" type="image/x-icon" href="assets/tokendeck.ico">
+  <link rel="icon" type="image/png" href="assets/tokendeck.png">
+  <link rel="icon" type="image/svg+xml" href="assets/tokendeck-logo-vetor.svg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons via CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bg: '#0d1117',
+            header: '#161b22',
+            toolbar: '#12151c',
+            card: '#161b22',
+            border: '#30363d',
+            codex: '#10a37f',
+            claude: '#f59e0b',
+            gemini: '#a855f7',
+          },
+          transitionTimingFunction: {
+            'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0d1117;
+      color: #f0f6fc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    .cards-grid {
+      display: grid;
+      transition: grid-template-columns 450ms cubic-bezier(0.16, 1, 0.3, 1);
+      gap: 0;
+      height: 490px;
+      min-width: 0;
+      width: 100%;
+      border-radius: 1rem;
+      border: 1px solid #30363d;
+      overflow: hidden;
+    }
+
+    .card-item[data-active="false"] .card-overlay {
+      background: linear-gradient(180deg, rgba(22, 27, 34, 0.88) 0%, rgba(22, 27, 34, 0.06) 35%, rgba(22, 27, 34, 0.06) 65%, rgba(22, 27, 34, 0.92) 100%);
+    }
+
+    .card-item[data-active="true"] .card-overlay {
+      background: linear-gradient(to top, #161b22, rgba(22, 27, 34, 0.75), rgba(22, 27, 34, 0.45));
+    }
+
+    .card-item[data-active="false"] .wallpaper-img {
+      opacity: 0.48;
+    }
+
+    .card-item[data-active="true"] .wallpaper-img {
+      opacity: 0.28;
+    }
+
+    .card-item {
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .card-item[data-active="true"] .expanded-content {
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 300ms ease-out 120ms;
+      display: flex;
+      min-width: 0;
+      width: 100%;
+    }
+    .card-item[data-active="false"] .expanded-content {
+      opacity: 0;
+      visibility: hidden;
+      display: none;
+      min-width: 0;
+    }
+
+    .card-item[data-active="false"] .compact-content {
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 250ms ease-out;
+      display: flex;
+      min-width: 0;
+      width: 100%;
+    }
+    .card-item[data-active="true"] .compact-content {
+      opacity: 0;
+      visibility: hidden;
+      display: none;
+      min-width: 0;
+    }
+
+    .cards-grid.mode-equal .card-item .expanded-content {
+      display: flex !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+    .cards-grid.mode-equal .card-item .compact-content {
+      display: none !important;
+    }
+    .cards-grid.mode-equal .chart-section {
+      display: none !important;
+    }
+
+    .progress-bar-fill {
+      transition: width 500ms ease-out;
+    }
+
+    .lucide {
+      display: inline-block;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body class="flex flex-col h-screen w-screen justify-between p-0 m-0">
+
+  <!-- ================= 1. HEADER BAR ================= -->
+  <header class="bg-[#161b22] border-b border-[#30363d] px-6 py-3 flex items-center justify-between shadow-sm">
+    <div class="flex items-center space-x-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center p-1 shadow-sm">
+          <img src="assets/tokendeck-logo-vetor.svg" class="w-full h-full object-contain filter drop-shadow" alt="TokenDeck Logo" />
+        </div>
+        <span class="text-xl font-black tracking-tight text-white">TOKENDECK</span>
+      </div>
+      <span class="text-[11px] font-bold bg-[#1f2d47] text-[#58a6ff] px-2 py-0.5 rounded border border-[#2d3e5f]">
+        CYD 2.8" USB
+      </span>
+    </div>
+
+    <!-- Status Pills com Ícones Lucide -->
+    <div class="flex items-center space-x-2.5 text-xs font-semibold">
+      <span id="pill-bridge" class="px-3 py-1 rounded-lg bg-[#182c20] text-[#3fb950] border border-[#23422d] transition-all flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/>
+        </svg>
+        <span>Bridge Ativa</span>
+      </span>
+
+      <span id="pill-cyd" class="px-3 py-1 rounded-lg bg-[#271c3b] text-[#a855f7] border border-[#3e2b5e] transition-all flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>
+        </svg>
+        <span id="pill-cyd-text">Tela CYD: Gemini</span>
+      </span>
+
+      <span id="pill-serial" class="px-3 py-1 rounded-lg bg-[#182c20] text-[#3fb950] border border-[#23422d] transition-all flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v20"/><path d="m17 7-5-5-5 5"/><rect width="6" height="6" x="9" y="12" rx="1"/>
+        </svg>
+        <span id="pill-serial-text">COM4 Conectada</span>
+      </span>
+    </div>
+  </header>
+
+  <!-- ================= 2. TOOLBAR ================= -->
+  <div class="bg-[#12151c] border-b border-[#242b38] px-6 py-2.5 flex items-center justify-between">
+    <div class="flex items-center space-x-2.5">
+      <!-- Botão Alternar Visualização -->
+      <button id="btn-toggle-view" onclick="toggleViewMode()" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#212638] hover:bg-[#303850] text-[#e6edf3] border border-[#373e52] transition flex items-center gap-2 cursor-pointer">
+        <svg class="w-3.5 h-3.5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/>
+        </svg>
+        <span id="text-toggle-view">Manter 3 Iguais</span>
+      </button>
+
+      <!-- Botão Iniciar / Parar Bridge -->
+      <button id="btn-bridge" onclick="toggleBridge()" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#da3633] hover:bg-[#f85149] text-white border border-[#b62324] transition flex items-center gap-2 cursor-pointer">
+        <span id="icon-bridge">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="14" height="14" x="5" y="5" rx="2"/>
+          </svg>
+        </span>
+        <span id="text-bridge">Parar Bridge USB</span>
+      </button>
+
+      <!-- Botão Gravar Firmware CYD -->
+      <button id="btn-flash" onclick="flashFirmware()" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#8957e5] hover:bg-[#a371f7] text-white border border-[#713cc9] transition flex items-center gap-2 cursor-pointer">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v10"/><path d="m16 8-4 4-4-4"/><rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6 18h.01"/><path d="M10 18h.01"/>
+        </svg>
+        <span>Gravar Firmware</span>
+      </button>
+
+      <!-- Botão Atualizar Agora -->
+      <button id="btn-refresh" onclick="refreshNow()" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#238636] hover:bg-[#2ea043] text-white border border-[#2ea043] transition flex items-center gap-2 cursor-pointer">
+        <svg id="icon-refresh" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>
+        </svg>
+        <span>Atualizar</span>
+      </button>
+    </div>
+
+    <!-- Controle de Brilho CYD Display & Info -->
+    <div class="flex items-center space-x-3">
+      <div class="flex items-center space-x-2.5 bg-[#161b22] px-3.5 py-1.5 rounded-lg border border-[#30363d] shadow-sm">
+        <div class="flex items-center gap-1.5 text-xs font-semibold text-[#c9d1d9]">
+          <svg class="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/>
+            <path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+          </svg>
+          <span>Brilho ESP32:</span>
+        </div>
+        <input
+          type="range"
+          id="slider-brightness"
+          min="10"
+          max="100"
+          step="5"
+          value="80"
+          oninput="onBrightnessInput(this.value)"
+          onchange="onBrightnessCommit(this.value)"
+          class="w-24 h-1.5 bg-[#21262d] rounded-lg appearance-none cursor-pointer accent-amber-400 hover:accent-amber-300 transition"
+          title="Definir o brilho do display da ESP32 CYD"
+        />
+        <span id="val-brightness" class="font-mono text-xs font-bold text-amber-400 w-9 text-right">80%</span>
+      </div>
+
+      <div id="toolbar-msg" class="text-xs text-[#8b949e] hidden lg:flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 text-[#58a6ff]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+        </svg>
+        <span id="toolbar-msg-text">Passe o mouse sobre qualquer card para expandir.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 3. CONTAINER DE CARDS ================= -->
+  <main class="flex-1 px-6 py-4 flex items-center">
+    <div id="cards-grid" class="cards-grid w-full" style="grid-template-columns: minmax(0, 5fr) minmax(0, 1fr) minmax(0, 1fr);">
+
+      <!-- CARD 1: CODEX / GPT -->
+      <div id="card-0" class="card-item group relative overflow-hidden rounded-xl bg-[#161b22] p-4 border-r border-[#30363d]/80 last:border-r-0 flex flex-col justify-between cursor-pointer transition-all duration-300"
+           data-active="true"
+           onmouseenter="onCardHover(0)"
+           onclick="onCardClick(0)">
+
+        <!-- Wallpaper de Fundo -->
+        <div class="absolute inset-0 pointer-events-none overflow-hidden rounded-xl z-0">
+          <img src="assets/wallpaper_openai_logo.svg" class="wallpaper-img w-full h-full object-cover opacity-25 group-hover:opacity-35 transition-all duration-500 select-none scale-100 group-hover:scale-105" alt="Wallpaper OpenAI" />
+          <div class="card-overlay absolute inset-0 transition-all duration-500"></div>
+          <div class="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-xl"></div>
+        </div>
+
+        <!-- EXPANDIDO -->
+        <div class="expanded-content relative z-10 flex-col h-full justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-2 border-b border-[#252b38]">
+              <div class="flex items-center gap-2.5">
+                <span class="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
+                <h2 class="text-xl font-bold text-white tracking-wide">Codex / GPT</h2>
+                <span id="codex-plan" class="text-[11px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded">PLUS / LOCAL</span>
+              </div>
+              <span id="codex-cyd-badge" class="text-[11px] font-bold text-emerald-400 flex items-center gap-1"></span>
+            </div>
+            <p class="text-xs text-[#8b949e] mt-1.5">OpenAI Session Logs & Rate Limits</p>
+
+            <div class="chart-section mt-4 bg-[#12161f]/85 backdrop-blur-sm border border-[#242b38] rounded-xl p-3.5">
+              <div class="flex justify-between items-center mb-2.5">
+                <span class="text-xs font-bold text-[#c9d1d9] flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
+                  </svg>
+                  Distribuição de Quota
+                </span>
+                <span id="codex-alert" class="text-[10px] font-bold px-2 py-0.5 rounded bg-[#182c20] text-[#3fb950] border border-[#23422d]">SEGURO</span>
+              </div>
+              
+              <div class="space-y-3">
+                <div>
+                  <div class="flex justify-between text-[11px] text-[#8b949e] mb-1">
+                    <span>Janela 5h</span>
+                    <span id="codex-graph-5h-text">Consumido: 0% | Livre: 100%</span>
+                  </div>
+                  <div class="w-full h-3 bg-[#21262d] rounded-full overflow-hidden">
+                    <div id="codex-graph-5h" class="progress-bar-fill h-full bg-emerald-500" style="width: 0%"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-[11px] text-[#8b949e] mb-1">
+                    <span>Semanal</span>
+                    <span id="codex-graph-wk-text">Consumido: 0% | Livre: 100%</span>
+                  </div>
+                  <div class="w-full h-3 bg-[#21262d] rounded-full overflow-hidden">
+                    <div id="codex-graph-wk" class="progress-bar-fill h-full bg-emerald-500" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mt-3">
+              <div class="bg-[#12161f]/85 backdrop-blur-sm p-3 rounded-xl border border-[#242b38]/60">
+                <span class="text-[11px] font-semibold text-[#8b949e] flex items-center gap-1">
+                  <svg class="w-3 h-3 text-[#8b949e]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  Janela de 5 Horas
+                </span>
+                <div id="codex-pct-5h" class="text-2xl font-black text-white mt-1">0%</div>
+                <div id="codex-reset-5h" class="text-[11px] text-[#8b949e] mt-1">Renova em: --</div>
+              </div>
+              <div class="bg-[#12161f]/85 backdrop-blur-sm p-3 rounded-xl border border-[#242b38]/60">
+                <span class="text-[11px] font-semibold text-[#8b949e] flex items-center gap-1">
+                  <svg class="w-3 h-3 text-[#8b949e]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
+                  </svg>
+                  Limite Semanal
+                </span>
+                <div id="codex-pct-wk" class="text-2xl font-black text-white mt-1">0%</div>
+                <div id="codex-reset-wk" class="text-[11px] text-[#8b949e] mt-1">Renova em: --</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-[#10131a]/90 backdrop-blur-sm rounded-lg px-3 py-2 text-[11px] text-[#8b949e] flex justify-between items-center border border-[#1e2330]">
+            <span id="codex-status" class="flex items-center gap-1">
+              <svg class="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+              Status: Operacional
+            </span>
+            <span id="codex-activity">Último prompt: --:--:--</span>
+          </div>
+        </div>
+
+        <!-- COMPACTADO -->
+        <div class="compact-content relative z-10 flex-col h-full justify-between items-center py-4">
+          <div class="w-full flex flex-col items-center">
+            <div class="w-7 h-1 bg-emerald-500 rounded-full mb-3"></div>
+            <span id="codex-cpt-cyd" class="text-[10px] font-bold text-emerald-400 mb-1"></span>
+            <h3 class="text-sm font-black tracking-wider text-white">CODEX</h3>
+          </div>
+          <div class="w-full flex flex-col items-center pb-2">
+            <div id="codex-cpt-pct" class="text-2xl font-black text-white tracking-tight mb-1.5 drop-shadow">
+              0%
+            </div>
+            <div class="w-16 h-1.5 bg-[#21262d] rounded-full overflow-hidden mb-1.5">
+              <div id="codex-cpt-bar" class="progress-bar-fill h-full bg-emerald-500" style="width: 0%"></div>
+            </div>
+            <span class="text-[10px] text-[#8b949e] font-medium">Janela 5h</span>
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- CARD 2: CLAUDE -->
+      <div id="card-1" class="card-item group relative overflow-hidden rounded-xl bg-[#161b22] p-4 border-r border-[#30363d]/80 last:border-r-0 flex flex-col justify-between cursor-pointer transition-all duration-300"
+           data-active="false"
+           onmouseenter="onCardHover(1)"
+           onclick="onCardClick(1)">
+
+        <!-- Wallpaper de Fundo -->
+        <div class="absolute inset-0 pointer-events-none overflow-hidden rounded-xl z-0">
+          <img src="assets/wallpaper_claude_logo.svg" class="wallpaper-img w-full h-full object-cover opacity-25 group-hover:opacity-35 transition-all duration-500 select-none scale-100 group-hover:scale-105" alt="Wallpaper Claude" />
+          <div class="card-overlay absolute inset-0 transition-all duration-500"></div>
+          <div class="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-xl"></div>
+        </div>
+
+        <!-- EXPANDIDO -->
+        <div class="expanded-content relative z-10 flex-col h-full justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-2 border-b border-[#252b38]">
+              <div class="flex items-center gap-2.5">
+                <span class="w-3 h-3 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50"></span>
+                <h2 class="text-xl font-bold text-white tracking-wide">Claude</h2>
+                <span id="claude-plan" class="text-[11px] font-bold text-amber-400 bg-amber-950/60 border border-amber-800/60 px-2 py-0.5 rounded">ANTHROPIC</span>
+              </div>
+              <span id="claude-cyd-badge" class="text-[11px] font-bold text-amber-400 flex items-center gap-1"></span>
+            </div>
+            <p class="text-xs text-[#8b949e] mt-1.5">Anthropic Claude Code Account & Quota</p>
+
+            <div class="chart-section mt-4 bg-[#12161f]/85 backdrop-blur-sm border border-[#242b38] rounded-xl p-3.5">
+              <div class="flex justify-between items-center mb-2.5">
+                <span class="text-xs font-bold text-[#c9d1d9] flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
+                  </svg>
+                  Distribuição de Quota
+                </span>
+                <span id="claude-alert" class="text-[10px] font-bold px-2 py-0.5 rounded bg-[#182c20] text-[#3fb950] border border-[#23422d]">SEGURO</span>
+              </div>
+              
+              <div class="space-y-3">
+                <div>
+                  <div class="flex justify-between text-[11px] text-[#8b949e] mb-1">
+                    <span>Janela 5h</span>
+                    <span id="claude-graph-5h-text">Consumido: 0% | Livre: 100%</span>
+                  </div>
+                  <div class="w-full h-3 bg-[#21262d] rounded-full overflow-hidden">
+                    <div id="claude-graph-5h" class="progress-bar-fill h-full bg-amber-500" style="width: 0%"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-[11px] text-[#8b949e] mb-1">
+                    <span>Semanal</span>
+                    <span id="claude-graph-wk-text">Consumido: 0% | Livre: 100%</span>
+                  </div>
+                  <div class="w-full h-3 bg-[#21262d] rounded-full overflow-hidden">
+                    <div id="claude-graph-wk" class="progress-bar-fill h-full bg-amber-500" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mt-3">
+              <div class="bg-[#12161f]/85 backdrop-blur-sm p-3 rounded-xl border border-[#242b38]/60">
+                <span class="text-[11px] font-semibold text-[#8b949e] flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 text-[#8b949e]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  Janela de 5 Horas
+                </span>
+                <div id="claude-pct-5h" class="text-2xl font-black text-white mt-1">0%</div>
+                <div id="claude-reset-5h" class="text-[11px] text-[#8b949e] mt-1">Renova em: --</div>
+              </div>
+              <div class="bg-[#12161f]/85 backdrop-blur-sm p-3 rounded-xl border border-[#242b38]/60">
+                <span class="text-[11px] font-semibold text-[#8b949e] flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 text-[#8b949e]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
+                  </svg>
+                  Limite Semanal
+                </span>
+                <div id="claude-pct-wk" class="text-2xl font-black text-white mt-1">0%</div>
+                <div id="claude-reset-wk" class="text-[11px] text-[#8b949e] mt-1">Renova em: --</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-[#10131a]/90 backdrop-blur-sm rounded-lg px-3 py-2 text-[11px] text-[#8b949e] flex justify-between items-center border border-[#1e2330]">
+            <span id="claude-status" class="flex items-center gap-1">
+              <svg class="w-3 h-3 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+              Status: Conectado
+            </span>
+            <span id="claude-activity">Último prompt: --:--:--</span>
+          </div>
+        </div>
+
+        <!-- COMPACTADO -->
+        <div class="compact-content relative z-10 flex-col h-full justify-between items-center py-4">
+          <div class="w-full flex flex-col items-center">
+            <div class="w-7 h-1 bg-amber-500 rounded-full mb-3"></div>
+            <span id="claude-cpt-cyd" class="text-[10px] font-bold text-amber-400 mb-1"></span>
+            <h3 class="text-sm font-black tracking-wider text-white">CLAUDE</h3>
+          </div>
+          <div class="w-full flex flex-col items-center pb-2">
+            <div id="claude-cpt-pct" class="text-2xl font-black text-white tracking-tight mb-1.5 drop-shadow">
+              0%
+            </div>
+            <div class="w-16 h-1.5 bg-[#21262d] rounded-full overflow-hidden mb-1.5">
+              <div id="claude-cpt-bar" class="progress-bar-fill h-full bg-amber-500" style="width: 0%"></div>
+            </div>
+            <span class="text-[10px] text-[#8b949e] font-medium">Janela 5h</span>
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- CARD 3: GEMINI -->
+      <div id="card-2" class="card-item group relative overflow-hidden rounded-xl bg-[#161b22] p-4 border-r border-[#30363d]/80 last:border-r-0 flex flex-col justify-between cursor-pointer transition-all duration-300"
+           data-active="false"
+           onmouseenter="onCardHover(2)"
+           onclick="onCardClick(2)">
+
+        <!-- Wallpaper de Fundo -->
+        <div class="absolute inset-0 pointer-events-none overflow-hidden rounded-xl z-0">
+          <img src="assets/wallpaper_gemini_logo.svg" class="wallpaper-img w-full h-full object-cover opacity-25 group-hover:opacity-35 transition-all duration-500 select-none scale-100 group-hover:scale-105" alt="Wallpaper Gemini" />
+          <div class="card-overlay absolute inset-0 transition-all duration-500"></div>
+          <div class="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-xl"></div>
+        </div>
+
+        <!-- EXPANDIDO -->
+        <div class="expanded-content relative z-10 flex-col h-full justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-2 border-b border-[#252b38]">
+              <div class="flex items-center gap-2.5">
+                <span class="w-3 h-3 rounded-full bg-purple-500 shadow-sm shadow-purple-500/50"></span>
+                <h2 class="text-xl font-bold text-white tracking-wide">Gemini</h2>
+                <span id="gemini-plan" class="text-[11px] font-bold text-purple-400 bg-purple-950/60 border border-purple-800/60 px-2 py-0.5 rounded">ANTIGRAVITY</span>
+              </div>
+              <span id="gemini-cyd-badge" class="text-[11px] font-bold text-purple-400 flex items-center gap-1"></span>
+            </div>
+            <p class="text-xs text-[#8b949e] mt-1.5">Google Gemini Models (Flash & Pro)</p>
+
+            <div class="chart-section mt-4 bg-[#12161f]/85 backdrop-blur-sm border border-[#242b38] rounded-xl p-3.5">
+              <div class="flex justify-between items-center mb-2.5">
+                <span class="text-xs font-bold text-[#c9d1d9] flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
+                  </svg>
+                  Distribuição de Quota
+                </span>
+                <span id="gemini-alert" class="text-[10px] font-bold px-2 py-0.5 rounded bg-[#182c20] text-[#3fb950] border border-[#23422d]">SEGURO</span>
+              </div>
+              
+              <div class="space-y-3">
+                <div>
+                  <div class="flex justify-between text-[11px] text-[#8b949e] mb-1">
+                    <span>Janela 5h</span>
+                    <span id="gemini-graph-5h-text">Consumido: 0% | Livre: 100%</span>
+                  </div>
+                  <div class="w-full h-3 bg-[#21262d] rounded-full overflow-hidden">
+                    <div id="gemini-graph-5h" class="progress-bar-fill h-full bg-purple-500" style="width: 0%"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-[11px] text-[#8b949e] mb-1">
+                    <span>Semanal</span>
+                    <span id="gemini-graph-wk-text">Consumido: 0% | Livre: 100%</span>
+                  </div>
+                  <div class="w-full h-3 bg-[#21262d] rounded-full overflow-hidden">
+                    <div id="gemini-graph-wk" class="progress-bar-fill h-full bg-purple-500" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mt-3">
+              <div class="bg-[#12161f]/85 backdrop-blur-sm p-3 rounded-xl border border-[#242b38]/60">
+                <span class="text-[11px] font-semibold text-[#8b949e] flex items-center gap-1">
+                  <svg class="w-3 h-3 text-[#8b949e]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  Janela de 5 Horas
+                </span>
+                <div id="gemini-pct-5h" class="text-2xl font-black text-white mt-1">0%</div>
+                <div id="gemini-reset-5h" class="text-[11px] text-[#8b949e] mt-1">Renova em: --</div>
+              </div>
+              <div class="bg-[#12161f]/85 backdrop-blur-sm p-3 rounded-xl border border-[#242b38]/60">
+                <span class="text-[11px] font-semibold text-[#8b949e] flex items-center gap-1">
+                  <svg class="w-3 h-3 text-[#8b949e]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
+                  </svg>
+                  Limite Semanal
+                </span>
+                <div id="gemini-pct-wk" class="text-2xl font-black text-white mt-1">0%</div>
+                <div id="gemini-reset-wk" class="text-[11px] text-[#8b949e] mt-1">Renova em: --</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-[#10131a]/90 backdrop-blur-sm rounded-lg px-3 py-2 text-[11px] text-[#8b949e] flex justify-between items-center border border-[#1e2330]">
+            <span id="gemini-status" class="flex items-center gap-1">
+              <svg class="w-3 h-3 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+              Status: Liberado
+            </span>
+            <span id="gemini-activity">Último prompt: --:--:--</span>
+          </div>
+        </div>
+
+        <!-- COMPACTADO -->
+        <div class="compact-content relative z-10 flex-col h-full justify-between items-center py-4">
+          <div class="w-full flex flex-col items-center">
+            <div class="w-7 h-1 bg-purple-500 rounded-full mb-3"></div>
+            <span id="gemini-cpt-cyd" class="text-[10px] font-bold text-purple-400 mb-1"></span>
+            <h3 class="text-sm font-black tracking-wider text-white">GEMINI</h3>
+          </div>
+          <div class="w-full flex flex-col items-center pb-2">
+            <div id="gemini-cpt-pct" class="text-2xl font-black text-white tracking-tight mb-1.5 drop-shadow">
+              0%
+            </div>
+            <div class="w-16 h-1.5 bg-[#21262d] rounded-full overflow-hidden mb-1.5">
+              <div id="gemini-cpt-bar" class="progress-bar-fill h-full bg-purple-500" style="width: 0%"></div>
+            </div>
+            <span class="text-[10px] text-[#8b949e] font-medium">Janela 5h</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ================= 4. FOOTER BAR ================= -->
+  <footer class="bg-[#0d1117] border-t border-[#21262d] px-6 py-2.5 flex items-center justify-between text-xs text-[#8b949e]">
+    <div id="footer-sync" class="flex items-center gap-2">
+      <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+      Sincronizado via Bridge USB (a cada 5s)
+    </div>
+    <div class="text-[#6e7681]">
+      Atalhos: [tokendeck-gui] | [tokendeck-server] | [tokendeck-record]
+    </div>
+  </footer>
+
+  <!-- ================= JAVASCRIPT: GPU ANIMATION & BRIDGE ================= -->
+  <script>
+    let activeIndex = 0;
+    let isModeEqual = false;
+
+    function formatMinutes(mins) {
+      if (mins === null || mins === undefined || mins < 0) return "--";
+      mins = Math.round(mins);
+      if (mins === 0) return "Agora (0 min)";
+      if (mins < 60) return `${mins} min`;
+      const hours = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      if (hours < 24) return `${hours}h ${remMins}m (${mins} min)`;
+      const days = Math.floor(hours / 24);
+      const remHours = hours % 24;
+      return `${days}d ${remHours}h (${mins} min)`;
+    }
+
+    function updateAlertChip(elId, pct) {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      if (pct >= 85) {
+        el.innerText = "CRÍTICO";
+        el.className = "text-[10px] font-bold px-2 py-0.5 rounded bg-[#3c1e22] text-[#f85149] border border-[#582025]";
+      } else if (pct >= 60) {
+        el.innerText = "ATENÇÃO";
+        el.className = "text-[10px] font-bold px-2 py-0.5 rounded bg-[#36291a] text-[#d29922] border border-[#533f27]";
+      } else {
+        el.innerText = "SEGURO";
+        el.className = "text-[10px] font-bold px-2 py-0.5 rounded bg-[#182c20] text-[#3fb950] border border-[#23422d]";
+      }
+    }
+
+    function onCardHover(index) {
+      if (isModeEqual) return;
+      if (activeIndex === index) return;
+      setActiveCard(index);
+    }
+
+    function onCardClick(index) {
+      if (isModeEqual) {
+        isModeEqual = false;
+        document.getElementById('cards-grid').classList.remove('mode-equal');
+        document.getElementById('text-toggle-view').innerText = 'Manter 3 Iguais';
+        document.getElementById('toolbar-msg-text').innerText = 'Modo Foco Ativo: passe o mouse para expandir.';
+      }
+      setActiveCard(index);
+    }
+
+    function setActiveCard(index) {
+      activeIndex = index;
+      const grid = document.getElementById('cards-grid');
+
+      if (index === 0) {
+        grid.style.gridTemplateColumns = "minmax(0, 5fr) minmax(0, 1fr) minmax(0, 1fr)";
+      } else if (index === 1) {
+        grid.style.gridTemplateColumns = "minmax(0, 1fr) minmax(0, 5fr) minmax(0, 1fr)";
+      } else {
+        grid.style.gridTemplateColumns = "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 5fr)";
+      }
+
+      for (let i = 0; i < 3; i++) {
+        const card = document.getElementById(`card-${i}`);
+        const isActive = (i === index);
+        card.setAttribute('data-active', isActive ? "true" : "false");
+        
+        if (isActive) {
+          card.classList.add('border-[#4b5563]');
+          card.classList.remove('border-[#30363d]');
+        } else {
+          card.classList.remove('border-[#4b5563]');
+          card.classList.add('border-[#30363d]');
+        }
+      }
+    }
+
+    function toggleViewMode() {
+      const grid = document.getElementById('cards-grid');
+      const textBtn = document.getElementById('text-toggle-view');
+      const msgText = document.getElementById('toolbar-msg-text');
+
+      if (!isModeEqual) {
+        isModeEqual = true;
+        grid.classList.add('mode-equal');
+        grid.style.gridTemplateColumns = "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)";
+        textBtn.innerText = 'Modo Foco (Hover)';
+        msgText.innerText = 'Modo Dividido: 3 abas abertas com tamanho uniforme (1:1:1).';
+      } else {
+        isModeEqual = false;
+        grid.classList.remove('mode-equal');
+        textBtn.innerText = 'Manter 3 Iguais';
+        msgText.innerText = 'Modo Foco Ativo: passe o mouse sobre qualquer card para expandir.';
+        setActiveCard(activeIndex);
+      }
+    }
+
+    async function toggleBridge() {
+      if (window.pywebview && window.pywebview.api) {
+        document.getElementById('toolbar-msg-text').innerText = "Processando comando da Bridge...";
+        await window.pywebview.api.toggle_bridge();
+        refreshNow();
+      }
+    }
+
+    async function flashFirmware() {
+      if (window.pywebview && window.pywebview.api) {
+        document.getElementById('toolbar-msg-text').innerText = "Liberando COM4 e gravando firmware na CYD...";
+        await window.pywebview.api.flash_firmware();
+      }
+    }
+
+    async function refreshNow() {
+      if (window.pywebview && window.pywebview.api) {
+        const icon = document.getElementById('icon-refresh');
+        if (icon) icon.classList.add('animate-spin');
+        document.getElementById('toolbar-msg-text').innerText = "Atualizando métricas...";
+        const data = await window.pywebview.api.get_status();
+        renderData(data);
+        if (icon) icon.classList.remove('animate-spin');
+        document.getElementById('toolbar-msg-text').innerText = "Métricas atualizadas com sucesso!";
+      }
+    }
+
+    function renderData(data) {
+      if (!data) return;
+
+      const port = data.port;
+      const pillSerial = document.getElementById('pill-serial');
+      const textSerial = document.getElementById('pill-serial-text');
+      if (port) {
+        textSerial.innerText = `USB ${port} Conectada`;
+        pillSerial.className = "px-3 py-1 rounded-lg bg-[#182c20] text-[#3fb950] border border-[#23422d] flex items-center gap-1.5";
+      } else {
+        textSerial.innerText = "USB Desconectado";
+        pillSerial.className = "px-3 py-1 rounded-lg bg-[#21262d] text-[#8b949e] border border-[#30363d] flex items-center gap-1.5";
+      }
+
+      const bridgeActive = data.bridge_active;
+      const pillBridge = document.getElementById('pill-bridge');
+      const btnBridge = document.getElementById('btn-bridge');
+      const textBridge = document.getElementById('text-bridge');
+      const iconBridge = document.getElementById('icon-bridge');
+
+      if (bridgeActive) {
+        pillBridge.querySelector('span').innerText = "Bridge Ativa";
+        pillBridge.className = "px-3 py-1 rounded-lg bg-[#182c20] text-[#3fb950] border border-[#23422d] flex items-center gap-1.5";
+        btnBridge.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#da3633] hover:bg-[#f85149] text-white border border-[#b62324] transition flex items-center gap-2 cursor-pointer";
+        textBridge.innerText = "Parar Bridge USB";
+        iconBridge.innerHTML = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="5" y="5" rx="2"/></svg>`;
+      } else {
+        pillBridge.querySelector('span').innerText = "Bridge Parada";
+        pillBridge.className = "px-3 py-1 rounded-lg bg-[#21262d] text-[#8b949e] border border-[#30363d] flex items-center gap-1.5";
+        btnBridge.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#1f6feb] hover:bg-[#388bfd] text-white border border-[#388bfd] transition flex items-center gap-2 cursor-pointer";
+        textBridge.innerText = "Iniciar Bridge USB";
+        iconBridge.innerHTML = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>`;
+      }
+
+      const activeProvider = data.active_provider || "gemini";
+      const names = { codex: "Codex / GPT", claude: "Claude", gemini: "Gemini" };
+      document.getElementById('pill-cyd-text').innerText = `Tela CYD: ${names[activeProvider] || "Gemini"}`;
+
+      // Codex
+      const codex = data.codex || {};
+      const c5h = codex.s || 0;
+      const cWk = codex.w || 0;
+      document.getElementById('codex-pct-5h').innerText = `${c5h}%`;
+      document.getElementById('codex-reset-5h').innerText = `Renova em: ${formatMinutes(codex.sr)}`;
+      document.getElementById('codex-pct-wk').innerText = `${cWk}%`;
+      document.getElementById('codex-reset-wk').innerText = `Renova em: ${formatMinutes(codex.wr)}`;
+      document.getElementById('codex-graph-5h').style.width = `${Math.min(c5h, 100)}%`;
+      document.getElementById('codex-graph-5h-text').innerText = `Consumido: ${c5h}% | Livre: ${(100 - c5h).toFixed(0)}%`;
+      document.getElementById('codex-graph-wk').style.width = `${Math.min(cWk, 100)}%`;
+      document.getElementById('codex-graph-wk-text').innerText = `Consumido: ${cWk}% | Livre: ${(100 - cWk).toFixed(0)}%`;
+      document.getElementById('codex-cpt-pct').innerText = `${c5h}%`;
+      document.getElementById('codex-cpt-bar').style.width = `${Math.min(c5h, 100)}%`;
+      updateAlertChip('codex-alert', Math.max(c5h, cWk));
+      if (activeProvider === 'codex') {
+        document.getElementById('codex-cyd-badge').innerHTML = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg> NA TELA CYD`;
+        document.getElementById('codex-cpt-cyd').innerText = "CYD";
+      } else {
+        document.getElementById('codex-cyd-badge').innerHTML = "";
+        document.getElementById('codex-cpt-cyd').innerText = "";
+      }
+
+      // Claude
+      const claude = data.claude || {};
+      const cl5h = claude.s || 0;
+      const clWk = claude.w || 0;
+      document.getElementById('claude-pct-5h').innerText = `${cl5h}%`;
+      document.getElementById('claude-reset-5h').innerText = `Renova em: ${formatMinutes(claude.sr)}`;
+      document.getElementById('claude-pct-wk').innerText = `${clWk}%`;
+      document.getElementById('claude-reset-wk').innerText = `Renova em: ${formatMinutes(claude.wr)}`;
+      document.getElementById('claude-graph-5h').style.width = `${Math.min(cl5h, 100)}%`;
+      document.getElementById('claude-graph-5h-text').innerText = `Consumido: ${cl5h}% | Livre: ${(100 - cl5h).toFixed(0)}%`;
+      document.getElementById('claude-graph-wk').style.width = `${Math.min(clWk, 100)}%`;
+      document.getElementById('claude-graph-wk-text').innerText = `Consumido: ${clWk}% | Livre: ${(100 - clWk).toFixed(0)}%`;
+      document.getElementById('claude-cpt-pct').innerText = `${cl5h}%`;
+      document.getElementById('claude-cpt-bar').style.width = `${Math.min(cl5h, 100)}%`;
+      updateAlertChip('claude-alert', Math.max(cl5h, clWk));
+      if (activeProvider === 'claude') {
+        document.getElementById('claude-cyd-badge').innerHTML = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg> NA TELA CYD`;
+        document.getElementById('claude-cpt-cyd').innerText = "CYD";
+      } else {
+        document.getElementById('claude-cyd-badge').innerHTML = "";
+        document.getElementById('claude-cpt-cyd').innerText = "";
+      }
+
+      // Gemini
+      const gemini = data.gemini || {};
+      const g5h = gemini.s || 0;
+      const gWk = gemini.w || 0;
+      document.getElementById('gemini-pct-5h').innerText = `${g5h}%`;
+      document.getElementById('gemini-reset-5h').innerText = `Renova em: ${formatMinutes(gemini.sr)}`;
+      document.getElementById('gemini-pct-wk').innerText = `${gWk}%`;
+      document.getElementById('gemini-reset-wk').innerText = `Renova em: ${formatMinutes(gemini.wr)}`;
+      document.getElementById('gemini-graph-5h').style.width = `${Math.min(g5h, 100)}%`;
+      document.getElementById('gemini-graph-5h-text').innerText = `Consumido: ${g5h}% | Livre: ${(100 - g5h).toFixed(0)}%`;
+      document.getElementById('gemini-graph-wk').style.width = `${Math.min(gWk, 100)}%`;
+      document.getElementById('gemini-graph-wk-text').innerText = `Consumido: ${gWk}% | Livre: ${(100 - gWk).toFixed(0)}%`;
+      document.getElementById('gemini-cpt-pct').innerText = `${g5h}%`;
+      document.getElementById('gemini-cpt-bar').style.width = `${Math.min(g5h, 100)}%`;
+      updateAlertChip('gemini-alert', Math.max(g5h, gWk));
+      if (activeProvider === 'gemini') {
+        document.getElementById('gemini-cyd-badge').innerHTML = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg> NA TELA CYD`;
+        document.getElementById('gemini-cpt-cyd').innerText = "CYD";
+      } else {
+        document.getElementById('gemini-cyd-badge').innerHTML = "";
+        document.getElementById('gemini-cpt-cyd').innerText = "";
+      }
+
+      // Brightness Slider Sync
+      if (data.brightness !== undefined && !isDraggingBrightness) {
+        const slider = document.getElementById('slider-brightness');
+        const badge = document.getElementById('val-brightness');
+        if (slider) slider.value = data.brightness;
+        if (badge) badge.innerText = `${data.brightness}%`;
+      }
+
+      document.getElementById('footer-sync').innerHTML = `
+        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+        ${data.source_mode || 'Sincronizado via Bridge USB'} | ${new Date().toLocaleTimeString()}
+      `;
+    }
+
+    // ================= CONTROLE DE BRILHO CYD =================
+    let isDraggingBrightness = false;
+    let brightnessDebounceTimer = null;
+
+    function onBrightnessInput(val) {
+      isDraggingBrightness = true;
+      const badge = document.getElementById('val-brightness');
+      if (badge) badge.innerText = `${val}%`;
+      if (brightnessDebounceTimer) clearTimeout(brightnessDebounceTimer);
+      brightnessDebounceTimer = setTimeout(() => {
+        commitBrightness(val);
+      }, 120);
+    }
+
+    function onBrightnessCommit(val) {
+      if (brightnessDebounceTimer) clearTimeout(brightnessDebounceTimer);
+      commitBrightness(val);
+      setTimeout(() => { isDraggingBrightness = false; }, 400);
+    }
+
+    async function commitBrightness(val) {
+      if (window.pywebview && window.pywebview.api) {
+        try {
+          await window.pywebview.api.set_brightness(parseInt(val, 10));
+        } catch (e) {
+          console.error("Erro ao definir brilho:", e);
+        }
+      }
+    }
+
+    window.addEventListener('pywebviewready', () => {
+      refreshNow();
+      setInterval(refreshNow, 5000);
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    });
+  </script>
+</body>
+</html>

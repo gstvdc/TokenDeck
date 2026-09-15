@@ -6,3 +6,4 @@ pystray
 Pillow
 pyserial
 customtkinter
+pywebview

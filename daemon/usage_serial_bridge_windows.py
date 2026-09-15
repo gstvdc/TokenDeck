@@ -167,8 +167,22 @@ def read_gemini_payload() -> dict:
     return payload or {"p": "gemini", "ok": False, "st": "unavailable"}
 
 
+def get_target_brightness() -> int:
+    """Return target display brightness percentage (10..100), default 80%."""
+    config_file = _REPO_ROOT / "daemon" / "device_config.json"
+    try:
+        if config_file.exists():
+            with config_file.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+                val = int(data.get("brightness", 80))
+                return max(10, min(100, val))
+    except Exception:
+        pass
+    return 80
+
+
 def payloads(claude_payload: dict | None, gemini_payload: dict | None,
-             active_provider: str = "") -> list[dict]:
+             active_provider: str = "", brightness_pwm: int | None = None) -> list[dict]:
     codex = read_codex_payload() or {"ok": False}
     codex["p"] = "codex"
     claude = dict(claude_payload or {"ok": False})
@@ -178,6 +192,9 @@ def payloads(claude_payload: dict | None, gemini_payload: dict | None,
     if active_provider:
         for payload in (codex, claude, gemini):
             payload["a"] = active_provider
+    if brightness_pwm is not None:
+        for payload in (codex, claude, gemini):
+            payload["brt"] = brightness_pwm
     return [codex, claude, gemini]
 
 
@@ -235,19 +252,24 @@ def main() -> None:
                 next_gemini = now + GEMINI_REFRESH_SECONDS
 
             try:
+                target_pct = get_target_brightness()
+                target_pwm = int(round(target_pct * 255.0 / 100.0))
+
                 detected_provider = activity_monitor.poll()
                 if detected_provider:
                     active_provider = detected_provider
-                current_payloads = payloads(claude_payload, gemini_payload, active_provider)
+                current_payloads = payloads(claude_payload, gemini_payload, active_provider, target_pwm)
                 for payload in current_payloads:
                     device.write(json.dumps(payload, separators=(",", ":")).encode() + b"\n")
                 device.flush()
+                last_sent_brightness_pwm = target_pwm
                 try:
                     status_path = _REPO_ROOT / "daemon" / "latest_status.json"
                     status_data = {
                         "updated_at": time.time(),
                         "active_provider": active_provider,
                         "port": port,
+                        "brightness": target_pct,
                         "payloads": {p["p"]: p for p in current_payloads},
                     }
                     status_path.write_text(json.dumps(status_data, indent=2), encoding="utf-8")
@@ -257,7 +279,21 @@ def main() -> None:
                 print(f"Conexão USB perdida: {exc}")
                 device.close()
                 device = None
-            time.sleep(UPDATE_SECONDS)
+
+            # Sleep in short slices so user brightness slider updates react instantly (< 300ms)
+            sleep_slices = int(UPDATE_SECONDS / 0.3)
+            for _ in range(sleep_slices):
+                time.sleep(0.3)
+                if device is not None and device.is_open:
+                    cur_pct = get_target_brightness()
+                    cur_pwm = int(round(cur_pct * 255.0 / 100.0))
+                    if cur_pwm != last_sent_brightness_pwm:
+                        try:
+                            device.write(json.dumps({"brt": cur_pwm}, separators=(",", ":")).encode() + b"\n")
+                            device.flush()
+                            last_sent_brightness_pwm = cur_pwm
+                        except (serial.SerialException, OSError):
+                            break
     except KeyboardInterrupt:
         print("\nTokenDeck USB bridge finalizado.")
     finally:
