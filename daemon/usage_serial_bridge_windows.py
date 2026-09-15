@@ -32,20 +32,44 @@ def _activity_roots() -> dict[str, Path]:
     return {
         "codex": home / ".codex" / "sessions",
         "claude": home / ".claude" / "sessions",
-        "gemini": home / ".gemini" / "antigravity-ide" / "conversations",
+        "gemini": home / ".gemini" / "antigravity-cli" / "conversations",
     }
 
 
-def last_active_provider(roots: dict[str, Path] | None = None) -> str:
-    """Return the assistant whose conversation record was written most recently.
+def _latest_codex_user_message(root: Path) -> float:
+    """Return the timestamp of the most recent *user* message in Codex logs.
 
-    This observes local activity only; it does not inspect terminal contents or
-    transmit prompts. A command that creates a conversation update therefore
-    becomes visible on the display within the bridge's next five-second cycle.
+    Codex keeps appending tool output after a prompt. File mtime would therefore
+    make background work look newer than a prompt sent to another assistant.
     """
-    newest_provider = ""
-    newest_mtime = -1.0
+    latest = -1.0
+    try:
+        files = sorted(root.rglob("*.jsonl"), key=lambda item: item.stat().st_mtime, reverse=True)[:8]
+    except OSError:
+        return latest
+    for path in files:
+        try:
+            with path.open(encoding="utf-8") as records:
+                for line in records:
+                    record = json.loads(line)
+                    payload = record.get("payload", {})
+                    if payload.get("type") != "message" or payload.get("role") != "user":
+                        continue
+                    timestamp = datetime.fromisoformat(record["timestamp"].replace("Z", "+00:00")).timestamp()
+                    latest = max(latest, timestamp)
+        except (OSError, ValueError, KeyError, json.JSONDecodeError):
+            continue
+    return latest
+
+
+def activity_markers(roots: dict[str, Path] | None = None) -> dict[str, float]:
+    """Return local activity markers without looking at prompt content."""
+    markers: dict[str, float] = {}
     for provider, root in (roots or _activity_roots()).items():
+        if provider == "codex":
+            markers[provider] = _latest_codex_user_message(root)
+            continue
+        newest_mtime = -1.0
         try:
             for path in root.rglob("*"):
                 if not path.is_file():
@@ -54,11 +78,32 @@ def last_active_provider(roots: dict[str, Path] | None = None) -> str:
                     mtime = path.stat().st_mtime
                 except OSError:
                     continue
-                if mtime > newest_mtime:
-                    newest_provider, newest_mtime = provider, mtime
+                newest_mtime = max(newest_mtime, mtime)
         except OSError:
             continue
-    return newest_provider
+        markers[provider] = newest_mtime
+    return markers
+
+
+class ActivityMonitor:
+    """Report a provider only when a new local activity record appears."""
+
+    def __init__(self, roots: dict[str, Path] | None = None):
+        self.roots = roots
+        self.seen = activity_markers(roots)
+
+    def poll(self) -> str:
+        current = activity_markers(self.roots)
+        changed = [(marker, provider) for provider, marker in current.items()
+                   if marker > self.seen.get(provider, -1.0)]
+        self.seen = current
+        return max(changed)[1] if changed else ""
+
+
+def last_active_provider(roots: dict[str, Path] | None = None) -> str:
+    """Compatibility helper: return the provider with the newest current marker."""
+    markers = activity_markers(roots)
+    return max(markers, key=markers.get, default="")
 
 
 def find_port() -> str | None:
@@ -71,10 +116,10 @@ def find_port() -> str | None:
     return usb_serial[0] if len(usb_serial) == 1 else None
 
 
-def _seconds_until(reset_time: str, now: float) -> int:
-    """Convert Antigravity's ISO reset time into the firmware's seconds field."""
+def _minutes_until(reset_time: str, now: float) -> int:
+    """Convert Antigravity's ISO reset time into the firmware's minutes field."""
     reset_at = datetime.fromisoformat(reset_time.replace("Z", "+00:00"))
-    return max(0, int(reset_at.timestamp() - now))
+    return max(0, int((reset_at.timestamp() - now) / 60))
 
 
 def parse_antigravity_usage(output: str, *, now: float | None = None) -> dict | None:
@@ -92,9 +137,9 @@ def parse_antigravity_usage(output: str, *, now: float | None = None) -> dict | 
         return {
             "p": "gemini",
             "s": round((1 - five_hour_remaining) * 100, 1),
-            "sr": _seconds_until(five_hours["reset_time"], timestamp),
+            "sr": _minutes_until(five_hours["reset_time"], timestamp),
             "w": round((1 - weekly_remaining) * 100, 1),
-            "wr": _seconds_until(weekly["reset_time"], timestamp),
+            "wr": _minutes_until(weekly["reset_time"], timestamp),
             "st": "allowed",
             "ok": True,
             "t": int(timestamp),
@@ -137,10 +182,12 @@ def payloads(claude_payload: dict | None, gemini_payload: dict | None,
 
 
 def main() -> None:
-    print("TokenMeter USB bridge iniciado. Pressione Ctrl+C para parar.")
+    print("TokenDeck USB bridge iniciado. Pressione Ctrl+C para parar.")
     device: serial.Serial | None = None
     claude_payload: dict | None = None
     gemini_payload: dict | None = None
+    activity_monitor = ActivityMonitor()
+    active_provider = ""
     next_claude = 0.0
     next_gemini = 0.0
     try:
@@ -188,17 +235,31 @@ def main() -> None:
                 next_gemini = now + GEMINI_REFRESH_SECONDS
 
             try:
-                active_provider = last_active_provider()
-                for payload in payloads(claude_payload, gemini_payload, active_provider):
+                detected_provider = activity_monitor.poll()
+                if detected_provider:
+                    active_provider = detected_provider
+                current_payloads = payloads(claude_payload, gemini_payload, active_provider)
+                for payload in current_payloads:
                     device.write(json.dumps(payload, separators=(",", ":")).encode() + b"\n")
                 device.flush()
+                try:
+                    status_path = _REPO_ROOT / "daemon" / "latest_status.json"
+                    status_data = {
+                        "updated_at": time.time(),
+                        "active_provider": active_provider,
+                        "port": port,
+                        "payloads": {p["p"]: p for p in current_payloads},
+                    }
+                    status_path.write_text(json.dumps(status_data, indent=2), encoding="utf-8")
+                except Exception:
+                    pass
             except (serial.SerialException, OSError) as exc:
                 print(f"Conexão USB perdida: {exc}")
                 device.close()
                 device = None
             time.sleep(UPDATE_SECONDS)
     except KeyboardInterrupt:
-        print("\nTokenMeter USB bridge finalizado.")
+        print("\nTokenDeck USB bridge finalizado.")
     finally:
         if device is not None and device.is_open:
             device.close()

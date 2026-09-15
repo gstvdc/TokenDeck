@@ -5,3 +5,4 @@ httpx
 pystray
 Pillow
 pyserial
+customtkinter

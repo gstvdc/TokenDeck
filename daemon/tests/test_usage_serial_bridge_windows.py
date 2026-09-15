@@ -1,6 +1,6 @@
 import json
 
-from daemon.usage_serial_bridge_windows import last_active_provider, parse_antigravity_usage
+from daemon.usage_serial_bridge_windows import ActivityMonitor, last_active_provider, parse_antigravity_usage
 
 
 def test_parses_only_gemini_group_from_antigravity_usage():
@@ -42,7 +42,7 @@ def test_parses_only_gemini_group_from_antigravity_usage():
         "s": 20.6,
         "sr": 0,
         "w": 56.7,
-        "wr": 8_512,
+        "wr": 141,
         "st": "allowed",
         "ok": True,
         "t": 1_789_736_000,
@@ -65,3 +65,20 @@ def test_detects_provider_with_most_recent_conversation_activity(tmp_path):
         os.utime(record, (1_000 + index * 60, 1_000 + index * 60))
 
     assert last_active_provider(roots) == "gemini"
+
+
+def test_activity_monitor_only_reports_new_activity_after_startup(tmp_path):
+    roots = {name: tmp_path / name for name in ("codex", "claude", "gemini")}
+    for root in roots.values():
+        root.mkdir()
+    record = roots["gemini"] / "conversation.db"
+    record.write_text("", encoding="utf-8")
+
+    monitor = ActivityMonitor(roots)
+    assert monitor.poll() == ""
+
+    import os
+    import time
+    os.utime(record, (time.time() + 10, time.time() + 10))
+    assert monitor.poll() == "gemini"
+    assert monitor.poll() == ""

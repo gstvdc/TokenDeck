@@ -678,19 +678,9 @@ static void render_usage(const UsageData* data) {
     }
 
     const bool is_codex = strcmp(data->provider, "codex") == 0;
-    const char* active_name = strcmp(data->active, "codex") == 0 ? "Codex"
-                            : strcmp(data->active, "claude") == 0 ? "Claude"
-                            : strcmp(data->active, "gemini") == 0 ? "Gemini"
-                            : nullptr;
     clock_base_epoch = 0;
     clock_last_min = -1;
-    if (active_name) {
-        char title[28];
-        snprintf(title, sizeof(title), "Agora: %s", active_name);
-        lv_label_set_text(lbl_title, title);
-    } else {
-        lv_label_set_text(lbl_title, "Usage");
-    }
+    lv_label_set_text(lbl_title, "Usage");
     lv_label_set_text(lbl_session_label, is_codex ? "5 hours" : "Current");
     lv_label_set_text(lbl_weekly_label, "Weekly");
 
@@ -764,6 +754,24 @@ static void render_usage(const UsageData* data) {
 
 void ui_update(const UsageData* data) {
     if (!data->valid) return;
+    // The bridge tags every payload with the assistant that had the last local
+    // activity. Switch the visible tab to that assistant automatically.
+    const provider_tab_t detected_provider = strcmp(data->active, "codex") == 0
+                                           ? PROVIDER_CODEX
+                                           : strcmp(data->active, "gemini") == 0
+                                               ? PROVIDER_GEMINI
+                                               : strcmp(data->active, "claude") == 0
+                                                   ? PROVIDER_CLAUDE
+                                                   : active_provider;
+    if (detected_provider != active_provider) {
+        active_provider = detected_provider;
+        update_provider_tabs();
+        const int detected_idx = (int)active_provider;
+        data_received = provider_has_data[detected_idx];
+        data_ok = provider_ok[detected_idx];
+        last_data_ms = provider_last_ms[detected_idx];
+        view_state = -1;
+    }
     const provider_tab_t provider = strcmp(data->provider, "codex") == 0
                                       ? PROVIDER_CODEX
                                       : strcmp(data->provider, "gemini") == 0
