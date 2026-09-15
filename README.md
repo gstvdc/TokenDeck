@@ -34,6 +34,27 @@ E exibe esses dados em dois ambientes integrados:
 
 ---
 
+## Demonstração Visual
+
+<div align="center">
+  <table>
+    <tr>
+      <th align="center">Display Físico de Mesa (CYD 2.8" ESP32)</th>
+      <th align="center">Aplicativo Desktop (TokenDeck Studio)</th>
+    </tr>
+    <tr>
+      <td align="center" width="45%">
+        <img src="screenshots/cyd_esp32_hardware.png" alt="Display CYD 2.8 ESP32 em Funcionamento" width="100%" />
+      </td>
+      <td align="center" width="55%">
+        <img src="screenshots/tokendeck_studio_gui.png" alt="TokenDeck Studio Desktop Dashboard" width="100%" />
+      </td>
+    </tr>
+  </table>
+</div>
+
+---
+
 ## Recursos Principais
 
 * **Layout Edge-to-Edge Responsivo**: 3 painéis integrados lado a lado cobrindo toda a extensão da janela com separadores limpos de 1px.
