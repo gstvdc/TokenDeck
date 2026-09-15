@@ -36,10 +36,13 @@ if _REPO_ROOT not in sys.path:
 # window). The base interpreter does NOT see the venv's site-packages, so add
 # them here to resolve pystray/bleak/PIL. os.path.isdir guards the no-venv and
 # already-inside-venv cases; site.addsitedir is a no-op on a missing dir anyway.
-_VENV_SITE = os.path.join(_REPO_ROOT, ".venv", "Lib", "site-packages")
-if os.path.isdir(_VENV_SITE):
-    import site
-    site.addsitedir(_VENV_SITE)
+for _site in (
+    os.path.join(_REPO_ROOT, ".venv", "Lib", "site-packages"),
+    os.path.join(_REPO_ROOT, "daemon", ".venv", "Lib", "site-packages"),
+):
+    if os.path.isdir(_site):
+        import site
+        site.addsitedir(_site)
 
 # ---------------------------------------------------------------------------
 # TrayState — thread-safe scalar bridge (loop -> tray)

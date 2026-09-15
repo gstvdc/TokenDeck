@@ -2,7 +2,61 @@
 
 <img src="assets/readme/waving.gif" width="120" align="right" alt="">
 
-A small ESP32 dashboard I made for my desk to keep an eye on Claude Code usage.
+A small ESP32 dashboard for keeping an eye on Codex, Claude Code, and Gemini usage.
+
+## Current setup: CYD 2.8 + Windows over USB
+
+The default `cyd_28` firmware is for a **Cheap Yellow Display 2.8-inch**
+(ESP32-2432S028R) connected directly to a Windows PC with a **USB data cable**.
+It uses the board's CH340 serial interface; Wi-Fi and Bluetooth are not used.
+
+```text
+Codex session files + Claude credentials + Antigravity CLI /usage
+                 |
+                 v
+usage_serial_bridge_windows.py  -- USB serial / COM port -->  CYD display
+```
+
+The bridge reads Codex usage from local session files and polls Claude when its
+credentials are available. It sends both compact JSON payloads to the display
+every five seconds. Keep the USB cable connected while using the dashboard.
+
+### Windows quick start
+
+Requirements: Windows 10/11, Python 3.11+, PlatformIO, the official
+Antigravity CLI (`agy`) signed in for Gemini usage, Claude Code logged in if
+Claude usage is wanted, and a USB **data** cable connected to the CYD's
+CH340/UART port.
+
+From the repository root in PowerShell:
+
+```powershell
+# One-time setup
+python -m venv daemon\.venv
+& "daemon\.venv\Scripts\python.exe" -m pip install -r daemon\requirements-windows.txt
+
+# Check that Antigravity is signed in and can report Gemini quota
+agy -p /usage --output-format json
+
+# Build and flash the CYD (the board appears as a COM port, usually COM4)
+& "$env:USERPROFILE\.platformio\penv\Scripts\pio.exe" run -d firmware -e cyd_28 -t upload
+
+# Start the USB bridge; leave this terminal running
+.\tokenmeter-run
+```
+
+If upload reports `Wrong boot mode detected`, hold **BOOT**, press and release
+**RST**, keep holding BOOT for one second, then run the upload command again.
+
+The display starts on the splash screen. Tap it to show usage. Tap the GPT or
+Clawd icon on the usage screen to cycle between Codex, Claude, and Gemini.
+The Gemini tab reports only the **Gemini Models** group from Antigravity's
+official read-only `agy -p /usage --output-format json` command. The Claude and
+GPT group returned by that command is deliberately ignored. The GPT logo has no
+background circle, but remains the touch target.
+
+> The sections below document the original BLE configuration for other boards.
+> They do not apply to the default CYD USB build above.
 
 It runs on a [Waveshare ESP32-S3-Touch-AMOLED-2.16](https://www.waveshare.com/esp32-s3-touch-amoled-2.16.htm?&aff_id=149786) as well as a few other alternative boards and pairs over Bluetooth, the splash screen plays pixel-art Clawd animations that get
 busier when your usage rate climbs. The two side buttons send Space and
@@ -25,6 +79,7 @@ While the splash is up, the middle (PWR) button cycles animations. **Hold the po
 
 Boards supported out of the box:
 
+- CYD 2.8-inch / ESP32-2432S028R (default: USB serial bridge on Windows)
 - [Waveshare ESP32-S3-Touch-AMOLED-2.16](https://www.waveshare.com/esp32-s3-touch-amoled-2.16.htm?&aff_id=149786)
 - [Waveshare ESP32-C6-Touch-AMOLED-2.16](https://www.waveshare.com/esp32-c6-touch-amoled-2.16.htm?&aff_id=149786)
 - [Waveshare ESP32-S3-Touch-AMOLED-1.8](https://www.waveshare.com/esp32-s3-touch-amoled-1.8.htm?&aff_id=149786)
@@ -187,7 +242,7 @@ reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v Clawdmeter /f
 | `Connection failed`                    | Toggle Windows Bluetooth off/on in Settings.             |
 | `Warning: running under Linux/WSL`     | Run from a native PowerShell window, not a WSL shell.    |
 
-## How it works
+## Legacy BLE architecture (other board environments)
 
 <img src="assets/readme/magnifier.gif" width="150" align="right" alt="">
 

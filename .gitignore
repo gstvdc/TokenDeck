@@ -15,6 +15,8 @@ tools/package-lock.json
 
 # Mac daemon venv
 daemon/.venv/
+daemon/.gemini-cli/
+daemon/.gemini-state/
 
 # Python bytecode cache
 __pycache__/

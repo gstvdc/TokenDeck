@@ -15,6 +15,8 @@
 #include "wifi_bridge.h"
 #ifdef USE_WIFI_BRIDGE
 #include "wifi_config.generated.h"
+#else
+#define DEVICE_NAME "TokenMeter"
 #endif
 
 #include "hal/board_caps.h"
@@ -112,6 +114,7 @@ static bool parse_json(const char* json, UsageData* out) {
 
     out->session_pct = doc["s"] | 0.0f;
     strlcpy(out->provider, doc["p"] | "claude", sizeof(out->provider));
+    strlcpy(out->active, doc["a"] | "", sizeof(out->active));
     out->session_reset_mins = doc["sr"] | -1;
     out->weekly_pct = doc["w"] | 0.0f;
     out->weekly_reset_mins = doc["wr"] | -1;
@@ -131,17 +134,19 @@ static bool parse_json(const char* json, UsageData* out) {
 
 static bool process_usage_json(const char* json) {
     if (!parse_json(json, &usage)) return false;
-    int g_before = usage_rate_group();
-    bool session_reset = usage_rate_sample(usage.session_pct);
-    int g_after = usage_rate_group();
-    if (session_reset && usage.chime) sound_hal_play_reset();
-    if (g_after != g_before && splash_is_active()) splash_pick_for_current_rate();
+    if (usage.ok) {
+        int g_before = usage_rate_group();
+        bool session_reset = usage_rate_sample(usage.session_pct);
+        int g_after = usage_rate_group();
+        if (session_reset && usage.chime) sound_hal_play_reset();
+        if (g_after != g_before && splash_is_active()) splash_pick_for_current_rate();
+    }
     ui_update(&usage);
     return true;
 }
 
 // ---- Serial command buffer ----
-#define CMD_BUF_SIZE 64
+#define CMD_BUF_SIZE 512
 static char cmd_buf[CMD_BUF_SIZE];
 static int cmd_pos = 0;
 
@@ -188,7 +193,11 @@ static void check_serial_cmd() {
         char c = Serial.read();
         if (c == '\n' || c == '\r') {
             cmd_buf[cmd_pos] = '\0';
-            if (strcmp(cmd_buf, "screenshot") == 0) send_screenshot();
+            if (cmd_pos && cmd_buf[0] == '{') {
+#ifdef USE_USB_SERIAL_BRIDGE
+                process_usage_json(cmd_buf);
+#endif
+            } else if (strcmp(cmd_buf, "screenshot") == 0) send_screenshot();
             else if (strcmp(cmd_buf, "buzz") == 0)  sound_hal_play_reset();
             cmd_pos = 0;
         } else if (cmd_pos < CMD_BUF_SIZE - 1) {
@@ -204,6 +213,9 @@ static void check_serial_cmd() {
 extern "C" void board_init(void);
 
 void setup() {
+    // The USB bridge may send both provider payloads while the display starts.
+    // Keep them until the main loop is ready to parse the newline-delimited JSON.
+    Serial.setRxBufferSize(1024);
     Serial.begin(115200);
     delay(300);
     Serial.println("{\"ready\":true}");
@@ -243,7 +255,7 @@ void setup() {
 
 #ifdef USE_WIFI_BRIDGE
     wifi_bridge_init();
-#else
+#elif !defined(USE_USB_SERIAL_BRIDGE)
     ble_init();
 #endif
     input_hal_init();
@@ -251,6 +263,8 @@ void setup() {
     ui_init();
 #ifdef USE_WIFI_BRIDGE
     ui_update_ble_status(BLE_STATE_ADVERTISING, DEVICE_NAME, "");
+#elif defined(USE_USB_SERIAL_BRIDGE)
+    ui_update_ble_status(BLE_STATE_CONNECTED, "USB", "");
 #else
     ui_update_ble_status(ble_get_state(), ble_get_device_name(), ble_get_mac_address());
 #endif
@@ -259,6 +273,8 @@ void setup() {
 
 #ifdef USE_WIFI_BRIDGE
     Serial.printf("Dashboard ready (%s, %dx%d), waiting for data over WiFi...\n",
+#elif defined(USE_USB_SERIAL_BRIDGE)
+    Serial.printf("Dashboard ready (%s, %dx%d), waiting for data over USB...\n",
 #else
     Serial.printf("Dashboard ready (%s, %dx%d), waiting for data on BLE...\n",
 #endif
@@ -319,7 +335,7 @@ void loop() {
     ui_tick_anim();
 #ifdef USE_WIFI_BRIDGE
     wifi_bridge_tick();
-#else
+#elif !defined(USE_USB_SERIAL_BRIDGE)
     ble_tick();
 #endif
     power_hal_tick();
@@ -379,6 +395,8 @@ void loop() {
                 // pairing only while disconnected. LVGL handles menu taps.
 #ifdef USE_WIFI_BRIDGE
                 if (!wifi_bridge_is_connected()) wifi_bridge_reconnect();
+#elif defined(USE_USB_SERIAL_BRIDGE)
+                // USB is continuously available while the data cable is connected.
 #else
                 if (ble_get_state() != BLE_STATE_CONNECTED) ble_clear_bonds();
 #endif
@@ -391,12 +409,16 @@ void loop() {
             }
         }
 
+#ifndef USE_USB_SERIAL_BRIDGE
         pair_tick();
+#endif
     }
 
 #ifdef USE_WIFI_BRIDGE
     ble_state_t bs = wifi_bridge_is_connected()
                    ? BLE_STATE_CONNECTED : BLE_STATE_ADVERTISING;
+#elif defined(USE_USB_SERIAL_BRIDGE)
+    ble_state_t bs = BLE_STATE_CONNECTED;
 #else
     ble_state_t bs = ble_get_state();
 #endif
@@ -410,7 +432,7 @@ void loop() {
     int  pct      = power_hal_battery_pct();
     bool charging = power_hal_is_charging();
     if (pct != last_pct || charging != last_charging) {
-#ifndef USE_WIFI_BRIDGE
+#if !defined(USE_WIFI_BRIDGE) && !defined(USE_USB_SERIAL_BRIDGE)
         if (pct != last_pct) ble_set_battery_level(pct);
 #endif
         last_pct = pct;
@@ -423,23 +445,25 @@ void loop() {
 #ifdef USE_WIFI_BRIDGE
     String bridge_json;
     if (wifi_bridge_pop(bridge_json)) process_usage_json(bridge_json.c_str());
-#else
+#elif !defined(USE_USB_SERIAL_BRIDGE)
     if (ble_has_data()) {
         if (parse_json(ble_get_data(), &usage)) {
-            int g_before = usage_rate_group();
-            bool session_reset = usage_rate_sample(usage.session_pct);
-            int g_after = usage_rate_group();
-            // 5-hour session limit refilled → chime so the user knows they can
-            // use Claude again (no-op on boards without a buzzer). Gated on the
-            // daemon's opt-in `chime` config; the `buzz` serial cmd ignores it.
-            if (session_reset && usage.chime) {
-                Serial.println("session reset detected — chime");
-                sound_hal_play_reset();
-            }
-            if (g_after != g_before) {
-                Serial.printf("usage rate: group %d -> %d (s=%.2f%%)\n",
-                    g_before, g_after, usage.session_pct);
-                if (splash_is_active()) splash_pick_for_current_rate();
+            if (usage.ok) {
+                int g_before = usage_rate_group();
+                bool session_reset = usage_rate_sample(usage.session_pct);
+                int g_after = usage_rate_group();
+                // 5-hour session limit refilled → chime so the user knows they can
+                // use Claude again (no-op on boards without a buzzer). Gated on the
+                // daemon's opt-in `chime` config; the `buzz` serial cmd ignores it.
+                if (session_reset && usage.chime) {
+                    Serial.println("session reset detected — chime");
+                    sound_hal_play_reset();
+                }
+                if (g_after != g_before) {
+                    Serial.printf("usage rate: group %d -> %d (s=%.2f%%)\n",
+                        g_before, g_after, usage.session_pct);
+                    if (splash_is_active()) splash_pick_for_current_rate();
+                }
             }
             ui_update(&usage);
             ble_send_ack();

@@ -5,6 +5,7 @@
 #include "logo.h"
 #include "clawd_still.h"
 #include "gpt_logo.h"
+#include "gemini_logo.h"
 #include "icons.h"
 #include "hal/board_caps.h"
 #ifdef USE_WIFI_BRIDGE
@@ -226,14 +227,15 @@ static lv_obj_t* battery_img;
 static lv_obj_t* logo_img;
 static lv_obj_t* claude_tab;
 static lv_obj_t* codex_tab;
+static lv_obj_t* gemini_tab;
 static lv_image_dsc_t battery_dscs[5];  // empty, low, medium, full, charging
 
-enum provider_tab_t { PROVIDER_CLAUDE = 0, PROVIDER_CODEX = 1 };
+enum provider_tab_t { PROVIDER_CLAUDE = 0, PROVIDER_CODEX = 1, PROVIDER_GEMINI = 2 };
 static provider_tab_t active_provider = PROVIDER_CODEX;
-static UsageData provider_data[2] = {};
-static bool provider_has_data[2] = {false, false};
-static bool provider_ok[2] = {false, false};
-static uint32_t provider_last_ms[2] = {0, 0};
+static UsageData provider_data[3] = {};
+static bool provider_has_data[3] = {false, false, false};
+static bool provider_ok[3] = {false, false, false};
+static uint32_t provider_last_ms[3] = {0, 0, 0};
 
 // ---- Live-data freshness → which usage sub-view to show ----
 // usage panels when data is flowing, an idle "Zzz" screen when the host is
@@ -249,6 +251,7 @@ static const uint32_t DATA_FRESH_MS = 90000;  // usage counts as "live" within t
 // ---- Shared ----
 static lv_image_dsc_t logo_dsc;
 static lv_image_dsc_t gpt_logo_dsc;
+static lv_image_dsc_t gemini_logo_dsc;
 static screen_t current_screen = SCREEN_USAGE;
 static bool     s_ble_connected = false;   // cached BLE connection state
 static uint32_t connected_at_ms = 0;       // when we last entered CONNECTED ("Connected" dwell)
@@ -590,6 +593,7 @@ void ui_init(void) {
     else               init_icon_dsc_rgb565a8(&logo_dsc, CLAWD_STILL_W, CLAWD_STILL_H, clawd_still_data);
 #endif
     init_icon_dsc_rgb565a8(&gpt_logo_dsc, GPT_LOGO_W, GPT_LOGO_H, gpt_logo_data);
+    init_icon_dsc_rgb565a8(&gemini_logo_dsc, GEMINI_LOGO_W, GEMINI_LOGO_H, gemini_logo_data);
     init_battery_icons();
 
     init_usage_screen(scr);
@@ -630,6 +634,19 @@ void ui_init(void) {
     lv_obj_t* gpt_icon = lv_image_create(codex_tab);
     lv_image_set_src(gpt_icon, &gpt_logo_dsc);
     lv_obj_center(gpt_icon);
+
+    gemini_tab = lv_button_create(usage_container);
+    lv_obj_set_size(gemini_tab, tab_size, tab_size);
+    lv_obj_set_pos(gemini_tab, L.margin, L.logo_y);
+    lv_obj_set_style_radius(gemini_tab, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_opa(gemini_tab, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(gemini_tab, 0, 0);
+    lv_obj_set_style_shadow_width(gemini_tab, 0, 0);
+    lv_obj_set_style_pad_all(gemini_tab, 0, 0);
+    lv_obj_add_event_cb(gemini_tab, provider_click_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_t* gemini_icon = lv_image_create(gemini_tab);
+    lv_image_set_src(gemini_icon, &gemini_logo_dsc);
+    lv_obj_center(gemini_icon);
     update_provider_tabs();
 
     battery_img = lv_image_create(scr);
@@ -661,9 +678,19 @@ static void render_usage(const UsageData* data) {
     }
 
     const bool is_codex = strcmp(data->provider, "codex") == 0;
+    const char* active_name = strcmp(data->active, "codex") == 0 ? "Codex"
+                            : strcmp(data->active, "claude") == 0 ? "Claude"
+                            : strcmp(data->active, "gemini") == 0 ? "Gemini"
+                            : nullptr;
     clock_base_epoch = 0;
     clock_last_min = -1;
-    lv_label_set_text(lbl_title, "Usage");
+    if (active_name) {
+        char title[28];
+        snprintf(title, sizeof(title), "Agora: %s", active_name);
+        lv_label_set_text(lbl_title, title);
+    } else {
+        lv_label_set_text(lbl_title, "Usage");
+    }
     lv_label_set_text(lbl_session_label, is_codex ? "5 hours" : "Current");
     lv_label_set_text(lbl_weekly_label, "Weekly");
 
@@ -738,7 +765,9 @@ static void render_usage(const UsageData* data) {
 void ui_update(const UsageData* data) {
     if (!data->valid) return;
     const provider_tab_t provider = strcmp(data->provider, "codex") == 0
-                                  ? PROVIDER_CODEX : PROVIDER_CLAUDE;
+                                      ? PROVIDER_CODEX
+                                      : strcmp(data->provider, "gemini") == 0
+                                          ? PROVIDER_GEMINI : PROVIDER_CLAUDE;
     const int idx = (int)provider;
     provider_data[idx] = *data;
     provider_ok[idx] = data->ok;
@@ -869,17 +898,25 @@ static void update_provider_tabs(void) {
             lv_obj_clear_flag(codex_tab, LV_OBJ_FLAG_HIDDEN);
         else
             lv_obj_add_flag(codex_tab, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_set_style_bg_color(codex_tab, COL_PANEL, 0);
-        lv_obj_set_style_bg_opa(codex_tab, LV_OPA_COVER, 0);
-        lv_obj_set_style_border_width(codex_tab, 1, 0);
-        lv_obj_set_style_border_color(codex_tab, COL_DIM, 0);
+        // Keep the touch target but render only the GPT mark.  The button's
+        // default panel and border previously made it look like a circle.
+        lv_obj_set_style_bg_opa(codex_tab, LV_OPA_TRANSP, 0);
+        lv_obj_set_style_border_width(codex_tab, 0, 0);
+    }
+    if (gemini_tab) {
+        if (active_provider == PROVIDER_GEMINI)
+            lv_obj_clear_flag(gemini_tab, LV_OBJ_FLAG_HIDDEN);
+        else
+            lv_obj_add_flag(gemini_tab, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
 static void provider_click_cb(lv_event_t* e) {
     lv_event_stop_bubbling(e);
     active_provider = active_provider == PROVIDER_CODEX
-                    ? PROVIDER_CLAUDE : PROVIDER_CODEX;
+                    ? PROVIDER_CLAUDE
+                    : active_provider == PROVIDER_CLAUDE
+                        ? PROVIDER_GEMINI : PROVIDER_CODEX;
     update_provider_tabs();
 
     const int idx = (int)active_provider;
@@ -914,6 +951,7 @@ void ui_show_screen(screen_t screen) {
     if (screen == SCREEN_SPLASH) {
         if (logo_img) lv_obj_add_flag(logo_img, LV_OBJ_FLAG_HIDDEN);
         if (codex_tab) lv_obj_add_flag(codex_tab, LV_OBJ_FLAG_HIDDEN);
+        if (gemini_tab) lv_obj_add_flag(gemini_tab, LV_OBJ_FLAG_HIDDEN);
     } else {
         update_provider_tabs();
     }

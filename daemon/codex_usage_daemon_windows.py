@@ -34,16 +34,22 @@ def _session_root() -> Path:
     return Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "sessions"
 
 
-def _latest_session_file(root: Path | None = None) -> Path | None:
+def _recent_session_files(root: Path | None = None, limit: int = 5) -> list[Path]:
     root = root or _session_root()
     try:
-        return max(root.rglob("*.jsonl"), key=lambda p: p.stat().st_mtime)
+        files = sorted(root.rglob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)
+        return files[:limit]
     except (OSError, ValueError):
-        return None
+        return []
+
+
+def _latest_session_file(root: Path | None = None) -> Path | None:
+    files = _recent_session_files(root, limit=1)
+    return files[0] if files else None
 
 
 def _last_rate_limits(path: Path) -> dict | None:
-    """Return only the last token_count.rate_limits object in a JSONL file."""
+    """Return only the last token_count.rate_limits object with primary usage in a JSONL file."""
     latest = None
     try:
         with path.open("r", encoding="utf-8") as stream:
@@ -57,7 +63,9 @@ def _last_rate_limits(path: Path) -> dict | None:
                 payload = record.get("payload", {})
                 limits = payload.get("rate_limits")
                 if payload.get("type") == "token_count" and isinstance(limits, dict):
-                    latest = limits
+                    primary = limits.get("primary")
+                    if isinstance(primary, dict) and primary.get("used_percent") is not None:
+                        latest = limits
     except OSError:
         return None
     return latest
@@ -71,32 +79,31 @@ def _minutes_until(epoch: object, now: float) -> int:
 
 
 def read_codex_payload(root: Path | None = None, now: float | None = None) -> dict | None:
-    path = _latest_session_file(root)
-    if path is None:
-        return None
-    limits = _last_rate_limits(path)
-    if not limits:
-        return None
+    for path in _recent_session_files(root):
+        limits = _last_rate_limits(path)
+        if not limits:
+            continue
 
-    primary = limits.get("primary") or {}
-    secondary = limits.get("secondary") or {}
-    if primary.get("used_percent") is None:
-        return None
+        primary = limits.get("primary") or {}
+        secondary = limits.get("secondary") or {}
+        if primary.get("used_percent") is None:
+            continue
 
-    now = time.time() if now is None else now
-    payload = {
-        "p": "codex",
-        "s": float(primary.get("used_percent", 0)),
-        "sr": _minutes_until(primary.get("resets_at"), now),
-        "w": float(secondary.get("used_percent", 0)),
-        "wr": _minutes_until(secondary.get("resets_at"), now),
-        "st": "limited" if limits.get("rate_limit_reached_type") else "allowed",
-        "acct": limits.get("plan_type") or "unknown",
-        "ok": True,
-        "t": int(now) + getattr(time.localtime(), "tm_gmtoff", 0),
-        "tf": 24,
-    }
-    return payload
+        now = time.time() if now is None else now
+        payload = {
+            "p": "codex",
+            "s": float(primary.get("used_percent", 0)),
+            "sr": _minutes_until(primary.get("resets_at"), now),
+            "w": float(secondary.get("used_percent", 0)),
+            "wr": _minutes_until(secondary.get("resets_at"), now),
+            "st": "limited" if limits.get("rate_limit_reached_type") else "allowed",
+            "acct": limits.get("plan_type") or "unknown",
+            "ok": True,
+            "t": int(now) + getattr(time.localtime(), "tm_gmtoff", 0),
+            "tf": 24,
+        }
+        return payload
+    return None
 
 
 async def connect_and_send(device, stop_event: asyncio.Event) -> bool:

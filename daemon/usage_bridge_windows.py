@@ -3,9 +3,15 @@ from __future__ import annotations
 
 import asyncio
 import json
+from pathlib import Path
+import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 from daemon.codex_usage_daemon_windows import read_codex_payload
 from daemon.claude_usage_daemon_windows import AuthError, poll_api, read_token
@@ -29,16 +35,22 @@ def store(path: str, payload: dict | None, provider: str) -> None:
 def refresh_loop() -> None:
     next_claude = 0.0
     while True:
-        store("/api/codex", read_codex_payload(), "codex")
-        now = time.monotonic()
-        if now >= next_claude:
-            token = read_token()
-            try:
-                payload = asyncio.run(poll_api(token)) if token else None
-            except AuthError:
-                payload = None
-            store("/api/claude", payload, "claude")
-            next_claude = now + 60
+        try:
+            store("/api/codex", read_codex_payload(), "codex")
+            now = time.monotonic()
+            if now >= next_claude:
+                token = read_token()
+                try:
+                    payload = asyncio.run(poll_api(token)) if token else None
+                except AuthError:
+                    payload = None
+                except Exception as exc:
+                    print(f"[{time.strftime('%H:%M:%S')}] Claude poll error: {exc}")
+                    payload = None
+                store("/api/claude", payload, "claude")
+                next_claude = now + 60
+        except Exception as exc:
+            print(f"[{time.strftime('%H:%M:%S')}] Refresh loop error: {exc}")
         time.sleep(5)
 
 
@@ -66,7 +78,14 @@ class Handler(BaseHTTPRequestHandler):
 def main() -> None:
     threading.Thread(target=refresh_loop, daemon=True).start()
     print(f"TokenMeter bridge: http://{HOST}:{PORT}")
-    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
+    print("Pressione Ctrl+C para parar.")
+    server = ThreadingHTTPServer((HOST, PORT), Handler)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nTokenMeter bridge finalizado.")
+    finally:
+        server.server_close()
 
 
 if __name__ == "__main__":
