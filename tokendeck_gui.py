@@ -414,14 +414,13 @@ def main():
 
     splash_window = None
     if splash_path.exists():
-        # Vídeo de abertura 1884x1080 (~1.74:1) num quadro sem moldura do mesmo aspecto.
-        splash_width = 840
-        splash_height = round(splash_width * 1080 / 1884)
+        # Tela cheia no monitor principal (mesma tela onde o app abre), sem
+        # nenhuma moldura/borda de janela — o vídeo (letterboxed em preto,
+        # ver splash.html) ocupa a tela toda em vez de uma caixa flutuante.
         splash_window = webview.create_window(
             title="TokenDeck",
             url=str(splash_path.resolve()),
-            width=splash_width,
-            height=splash_height,
+            fullscreen=True,
             frameless=True,
             on_top=True,
             background_color="#000000",
