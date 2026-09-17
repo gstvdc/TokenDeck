@@ -372,6 +372,22 @@ class TokenDeckBridgeApi:
         return True
 
 
+class SplashApi:
+    """API exposta ao vídeo de abertura: só sabe encerrar a splash e revelar a janela principal."""
+
+    def __init__(self, splash_window, main_window):
+        self._splash_window = splash_window
+        self._main_window = main_window
+        self._done = False
+
+    def splash_finished(self) -> None:
+        if self._done:
+            return
+        self._done = True
+        self._main_window.show()
+        self._splash_window.destroy()
+
+
 def main():
     try:
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("TokenDeck.Studio.Monitor")
@@ -380,10 +396,12 @@ def main():
 
     api = TokenDeckBridgeApi()
     html_path = _REPO_ROOT / "gui" / "index.html"
+    splash_path = _REPO_ROOT / "gui" / "splash.html"
     icon_path = _REPO_ROOT / "assets" / "tokendeck.ico"
 
-    # Cria uma janela nativa com motor WebView2 (aceleração por GPU cravada a 120 FPS)
-    window = webview.create_window(
+    # Cria a janela principal já com motor WebView2 (GPU, 120 FPS), mas oculta —
+    # só aparece quando o vídeo de abertura terminar (ver SplashApi abaixo).
+    main_window = webview.create_window(
         title="TokenDeck — Multi-Model AI Usage Monitor",
         url=str(html_path.resolve()),
         js_api=api,
@@ -391,7 +409,24 @@ def main():
         height=720,
         min_size=(960, 580),
         background_color="#16171a",
+        hidden=True,
     )
+
+    splash_window = None
+    if splash_path.exists():
+        # Vídeo de abertura 1884x1080 (~1.74:1) num quadro sem moldura do mesmo aspecto.
+        splash_width = 840
+        splash_height = round(splash_width * 1080 / 1884)
+        splash_window = webview.create_window(
+            title="TokenDeck",
+            url=str(splash_path.resolve()),
+            width=splash_width,
+            height=splash_height,
+            frameless=True,
+            on_top=True,
+            background_color="#000000",
+        )
+        splash_window.expose(SplashApi(splash_window, main_window).splash_finished)
 
     webview.start(debug=False, icon=str(icon_path.resolve()) if icon_path.exists() else None)
 

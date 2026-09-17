@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>TokenDeck</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      background: #000; overflow: hidden;
+      -webkit-user-select: none; user-select: none; cursor: pointer;
+    }
+    video {
+      width: 100%; height: 100%; object-fit: contain; display: block;
+    }
+  </style>
+</head>
+<body>
+  <video id="intro" src="assets/intro.mp4" autoplay muted playsinline></video>
+  <script>
+    // Vídeo de abertura ao iniciar o app. Termina sozinho quando o vídeo acaba,
+    // por clique (skip), ou por um teto de segurança caso o autoplay/codec falhe.
+    const video = document.getElementById('intro');
+    let finished = false;
+
+    function finish() {
+      if (finished) return;
+      finished = true;
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.splash_finished) {
+        window.pywebview.api.splash_finished();
+      }
+    }
+
+    video.addEventListener('ended', finish);
+    document.body.addEventListener('click', finish);
+
+    // muted é necessário para o autoplay ser garantido (sem isso, engines
+    // baseadas em Chromium como o WebView2 podem simplesmente não tocar).
+    video.play().catch(finish);
+
+    // teto de segurança: nunca trava o app se o vídeo não carregar/tocar.
+    setTimeout(finish, 8000);
+  </script>
+</body>
+</html>
