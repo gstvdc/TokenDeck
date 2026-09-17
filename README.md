@@ -118,10 +118,10 @@ Launch tools directly from PowerShell, via the Desktop shortcut with the officia
 
 | Action | Shortcut / Executable | PowerShell Command | Description |
 | :--- | :--- | :--- | :--- |
-| **Open Desktop App (Icon)** | `TokenDeck.lnk` (Desktop) | `.\tokendeck-gui` | Launches the Studio dashboard silently without terminal windows. |
+| **Open Desktop App (Icon)** | `TokenDeck.lnk` (Desktop) | `.\tokendeck` | Launches the Studio dashboard silently without terminal windows. |
 | **Start USB Bridge** | `tokendeck-server.cmd` | `.\tokendeck-server` | Starts the 5-second serial telemetry bridge to the CYD display. |
 | **Flash Firmware** | `tokendeck-record.cmd` | `.\tokendeck-record` | Compiles and flashes the firmware to the CYD board via PlatformIO. |
-| **Recreate Shortcuts** | `create-shortcut.ps1` | `.\create-shortcut.ps1` | Generates or updates the Desktop and project shortcuts with the icon. |
+| **Recreate Shortcuts** | `scripts\create-shortcut.ps1` | `.\scripts\create-shortcut.ps1` | Generates or updates the Desktop and project shortcuts with the icon. |
 
 ---
 

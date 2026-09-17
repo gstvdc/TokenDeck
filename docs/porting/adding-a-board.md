@@ -82,11 +82,13 @@ Optional:
    messages — the reference port logs OK / failure for display, touch,
    and power during `setup()`.
 
-7. **Visual QA.** `./screenshot.sh out.png` over USB serial captures
-   the live framebuffer at the active resolution. The UI is responsive
-   (see [hal-contract.md](hal-contract.md) for breakpoint details);
-   most ports will look acceptable out of the box. If your screen size
-   doesn't match an existing breakpoint, you may want to add one to
+7. **Visual QA.** Eyeball the display on real hardware — the LVGL
+   framebuffer-snapshot tooling was removed since it needed
+   `LV_USE_SNAPSHOT`, which `cyd_28` (no PSRAM) builds with off. The UI
+   is responsive (see [hal-contract.md](hal-contract.md) for breakpoint
+   details); most ports will look acceptable out of the box. If your
+   screen size doesn't match an existing breakpoint, you may want to add
+   one to
    `compute_layout()` in `firmware/src/ui.cpp`.
 
 ## Common pitfalls

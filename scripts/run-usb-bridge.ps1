@@ -7,8 +7,9 @@ if (-not $createdNew) {
 }
 
 try {
-    $bridgeScript = (Resolve-Path "${PSScriptRoot}\daemon\usage_serial_bridge_windows.py").Path
-    & "${PSScriptRoot}\daemon\.venv\Scripts\python.exe" $bridgeScript
+    $repoRoot = Split-Path $PSScriptRoot -Parent
+    $bridgeScript = (Resolve-Path "${repoRoot}\daemon\usage_serial_bridge_windows.py").Path
+    & "${repoRoot}\daemon\.venv\Scripts\python.exe" $bridgeScript
     exit $LASTEXITCODE
 } finally {
     $mutex.ReleaseMutex()

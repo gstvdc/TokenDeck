@@ -6,9 +6,8 @@
 > in the [root README](../README.md#current-setup-cyd-28--windows-over-usb).
 > This document remains for the older BLE-based board configurations.
 
-This guide covers running the Clawdmeter Windows daemon on native Windows hardware.
-It includes the turnkey `install-windows.ps1` bootstrap (tray icon + login autostart),
-the manual-run fallback, and how to manage or remove autostart.
+This guide covers running the Clawdmeter Windows daemon manually on native Windows
+hardware, including the tray icon and login autostart.
 
 ---
 
@@ -153,37 +152,31 @@ Press **Ctrl+C** in the terminal. The daemon logs `Daemon stopping` and exits cl
 
 ---
 
-## Tray icon, login autostart, and turnkey install
+## Tray icon and login autostart
 
-### One-command install (recommended)
+> **Run from a native Windows path.** Clone or copy this repository to a Windows
+> location such as `%USERPROFILE%\Clawdmeter` — **not** a WSL share
+> (`\\wsl$\...` or `\\wsl.localhost\...`). Running from the WSL share would point
+> the virtual environment and the login-autostart entry at a path that disappears
+> when WSL shuts down, defeating the whole point of the Windows daemon.
 
-> **Copy the repo to a native Windows path first.** Clone or copy this repository
-> to a Windows location such as `%USERPROFILE%\Clawdmeter` — **not** a WSL share
-> (`\\wsl$\...` or `\\wsl.localhost\...`). Installing from the WSL share would point
-> the virtual environment and the login-autostart entry at a path that disappears when
-> WSL shuts down, defeating the whole point of the Windows daemon. The installer
-> detects a WSL path and refuses to run, telling you how to relocate.
->
-> ```powershell
-> Copy-Item -Recurse '\\wsl.localhost\Ubuntu\home\<you>\repos\Clawdmeter' "$env:USERPROFILE\Clawdmeter"
-> cd "$env:USERPROFILE\Clawdmeter"
-> ```
-
-Run this once from the repository root in PowerShell (a native Windows path):
+With the venv set up (see [Setup](#setup-one-time) above), launch the tray app manually:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File install-windows.ps1
+python daemon\tray_windows.py
 ```
 
-The script does four things in order and logs progress at each step:
+This shows the tray icon and status (see below). To also launch it automatically at
+login, enable autostart from the tray menu's **Start at login** toggle, or call the
+underlying helper directly:
 
-1. Creates a Python virtual environment at `.venv`.
-2. Installs dependencies from `daemon\requirements-windows.txt` (bleak, httpx, pystray, Pillow).
-3. Registers the tray app to launch automatically at login via `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` — per-user, no admin required.
-4. Launches the tray app immediately (headless — no console window).
+```powershell
+python -c "import daemon.autostart_windows as a; a.enable(tray_script=r'daemon\tray_windows.py')"
+```
 
-The script downloads nothing from the internet. It only installs the packages listed in
-the in-repo `daemon\requirements-windows.txt`.
+That registers `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` — per-user, no
+admin required — pointing at the base interpreter's `pythonw.exe` so it launches
+headless (no console window) at next logon.
 
 ### Tray icon and status
 

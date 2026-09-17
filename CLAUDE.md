@@ -76,12 +76,12 @@ pio run -d firmware -e cyd_28 -t upload --upload-port /dev/ttyACM0  # flash on L
 
 If `pio` isn't on PATH: try `~/.platformio/penv/bin/pio` (or its Windows
 `Scripts\pio.exe`), or `brew install platformio` on macOS. On Windows, use
-`flash-cyd.ps1` (also invoked by `tokendeck-record.cmd`) — it resolves the
-right port automatically.
+`scripts\flash-cyd.ps1` (also invoked by `tokendeck-record.cmd`) — it
+resolves the right port automatically.
 
 ## QA your own UI changes — don't ask the user
 
-The firmware ships a `screenshot` serial command that dumps the LVGL framebuffer, but it's **disabled on `cyd_28`** (`-DLV_USE_SNAPSHOT=0` in `platformio.ini`, since the board has no PSRAM to spare) — UI changes must be eyeballed on real hardware, not auto-captured. `./screenshot.sh` still works for a future PSRAM-equipped board that enables `LV_USE_SNAPSHOT`.
+The firmware's `screenshot` serial command (LVGL framebuffer dump) and the `screenshot.sh` wrapper that drove it were removed — both required `LV_USE_SNAPSHOT`, which `cyd_28` builds with off (`-DLV_USE_SNAPSHOT=0` in `platformio.ini`, no PSRAM to spare). UI changes must be eyeballed on real hardware. A future PSRAM-equipped board that enables `LV_USE_SNAPSHOT` would need to reintroduce this tooling.
 
 The boot screen is `SCREEN_SPLASH` and only advances on a physical button press (or a screen tap on `cyd_28`, which has no PWR key), so a fresh flash will sit on the splash. To exercise the screen you're actually editing without a physical button press, **temporarily change the default boot screen** in `main.cpp` (search for `ui_show_screen(SCREEN_SPLASH);`) to `SCREEN_USAGE` / `SCREEN_CONTROLLER` / `SCREEN_BLUETOOTH`, do your iteration, then revert before committing.
 
@@ -185,7 +185,7 @@ work for anyone with a previously-flashed BLE-capable board (that firmware
 source no longer builds from this repo — see "Project context" above), and
 their shared logic lives in `daemon/usage_common.py`.
 
-Bash daemon (`daemon/claude-usage-daemon.sh`) reads OAuth token, polls Anthropic API, sends JSON over BLE GATT. Run with `systemctl --user start claude-usage-daemon`. The unit file's `ExecStart` is the absolute path to the script — repoint it when switching between the worktree and the main checkout. `daemon/claude_usage_daemon.py` (macOS/Linux) and `daemon/claude_usage_daemon_windows.py` (Windows tray, via `install-windows.ps1`) are the Python equivalents.
+Bash daemon (`daemon/claude-usage-daemon.sh`) reads OAuth token, polls Anthropic API, sends JSON over BLE GATT. Run with `systemctl --user start claude-usage-daemon`. The unit file's `ExecStart` is the absolute path to the script — repoint it when switching between the worktree and the main checkout. `daemon/claude_usage_daemon.py` (macOS/Linux) and `daemon/claude_usage_daemon_windows.py` (Windows, run manually or via `daemon/tray_windows.py`) are the Python equivalents.
 
 **Discovery & resilience:**
 

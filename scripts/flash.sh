@@ -15,7 +15,7 @@ if [ -z "$BOARD" ]; then
     echo "Error: board env name is required."
     echo "Usage: $0 <board> [port]"
     echo "Available boards:"
-    grep -E '^\[env:' "$SCRIPT_DIR/firmware/platformio.ini" | sed 's/\[env:/  /;s/\]//'
+    grep -E '^\[env:' "$SCRIPT_DIR/../firmware/platformio.ini" | sed 's/\[env:/  /;s/\]//'
     exit 1
 fi
 
@@ -24,7 +24,7 @@ echo "Board: $BOARD"
 echo "Port:  $PORT"
 echo ""
 
-cd "$SCRIPT_DIR/firmware"
+cd "$SCRIPT_DIR/../firmware"
 ~/.platformio/penv/bin/pio run -e "$BOARD" -t upload --upload-port "$PORT"
 
 echo ""

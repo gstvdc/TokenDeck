@@ -1,5 +1,5 @@
 $WshShell = New-Object -ComObject WScript.Shell
-$projectDir = $PSScriptRoot
+$projectDir = Split-Path $PSScriptRoot -Parent
 if (-not $projectDir) {
     $projectDir = (Get-Location).Path
 }
