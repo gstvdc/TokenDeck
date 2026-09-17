@@ -414,13 +414,19 @@ def main():
 
     splash_window = None
     if splash_path.exists():
-        # Tela cheia no monitor principal (mesma tela onde o app abre), sem
-        # nenhuma moldura/borda de janela — o vídeo (letterboxed em preto,
-        # ver splash.html) ocupa a tela toda em vez de uma caixa flutuante.
+        # Janela sem moldura do tamanho exato da tela do sistema, na posição
+        # (0,0) — preenche a tela igual a um fullscreen visualmente, mas sem
+        # entrar no modo fullscreen exclusivo do SO (que pode se comportar
+        # de forma estranha com alt-tab / barra de tarefas).
+        screen = webview.screens[0] if webview.screens else None
+        screen_size = (screen.width, screen.height) if screen else (1920, 1080)
         splash_window = webview.create_window(
             title="TokenDeck",
             url=str(splash_path.resolve()),
-            fullscreen=True,
+            width=screen_size[0],
+            height=screen_size[1],
+            x=0,
+            y=0,
             frameless=True,
             on_top=True,
             background_color="#000000",
