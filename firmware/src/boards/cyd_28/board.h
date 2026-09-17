@@ -33,3 +33,5 @@
 #define BOARD_HAS_BATTERY          0
 #define BOARD_HAS_IO_EXPANDER      0
 #define BOARD_HAS_SOUND            0
+// No PMU/PWR key: a screen tap starts/restarts pairing instead (main.cpp).
+#define BOARD_HAS_PWR_BUTTON       0

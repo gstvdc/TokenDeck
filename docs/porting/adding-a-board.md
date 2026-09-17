@@ -1,4 +1,4 @@
-# Porting Clawdmeter to a new board
+# Porting the firmware to a new board
 
 A board port is a folder under `firmware/src/boards/` plus a new
 `[env:...]` block in `firmware/platformio.ini`. You should never need
@@ -6,28 +6,31 @@ to edit `firmware/src/main.cpp`, `firmware/src/ui.cpp`, or anything
 under `firmware/src/hal/`. If you find yourself wanting to, that's a
 gap in the HAL — open an issue.
 
+Today the only shipping port is `cyd_28` (ESP32-2432S028R "CYD", a
+classic ESP32 + ILI9341 + XPT2046, no PSRAM, no PMU/IMU). Use it as
+your worked example for the HAL contract; `boards/template/` is the
+TODO-scaffolded starting point.
+
 ## Hardware you need
 
 At minimum:
 
-- An **ESP32-S3** (other ESP32 family members may work; this is what the
-  upstream firmware is tested on). OPI PSRAM is **required** — partial
-  flush buffers and the splash canvas are allocated from PSRAM.
+- An ESP32 (classic, S2, S3, or C6 — the HAL has no ESP32-family
+  assumptions baked in; PSRAM is optional, gated by `BOARD_HAS_PSRAM`).
 - A panel with a driver supported by
-  [GFX Library for Arduino](https://github.com/moononournation/Arduino_GFX).
-  Reference ports cover QSPI AMOLED (CO5300, SH8601), 4-wire SPI TFT
-  (ST7789 on LCD-1.54), and RGB parallel (ST7701 on LCD-4).
-- A **touch controller** over I2C. The HAL just needs init + read; you
-  can use any driver you can compile.
+  [GFX Library for Arduino](https://github.com/moononournation/Arduino_GFX)
+  (SPI, QSPI, or RGB parallel).
+- A **touch controller** over I2C or SPI. The HAL just needs init + read;
+  you can use any driver you can compile.
 - A **primary button** (typically the BOOT/GPIO 0 push button).
 
 Optional:
 
 - A second physical button (e.g. for HID Shift+Tab mode toggle).
-- An AXP2101 PMU for battery monitoring + a power button.
-- A QMI8658 (or compatible) IMU for automatic rotation.
-- An XCA9554 / PCA9554 IO expander if reset / enable lines are routed
-  through one (the AMOLED-1.8 board does this).
+- A PMU for battery monitoring + a power button (set
+  `BOARD_HAS_PWR_BUTTON` accordingly — see `hal/board_caps.h`).
+- An IMU for automatic rotation.
+- An IO expander if reset / enable lines are routed through one.
 
 ## Step-by-step
 
@@ -43,21 +46,14 @@ Optional:
    implementations and runtime UI decisions via `BoardCaps`.
 
 3. **Implement the per-board sources.** Each one corresponds to a HAL
-   header in `firmware/src/hal/`. Look at one of the reference ports for
-   a worked example:
+   header in `firmware/src/hal/`: `display.cpp`, `touch.cpp`,
+   `input.cpp`, `power.cpp`, `imu.cpp`, `caps.cpp`, `board_init.cpp`.
+   `boards/cyd_28/` is the current reference implementation for all of
+   them; `boards/template/` documents what each file needs to provide
+   even when a feature (PMU, IMU, IO expander) is absent.
 
-   | File              | Reference port (start here)                                    |
-   |-------------------|----------------------------------------------------------------|
-   | `display.cpp`     | `boards/waveshare_amoled_216/display.cpp` (with CPU rotation), `_18/display.cpp` (no rotation), `waveshare_lcd_154/display.cpp` (SPI TFT), or `waveshare_lcd_4/display.cpp` (RGB parallel + bounce buffers) |
-   | `touch.cpp`       | `_216/touch.cpp` (library-based) or `_18/touch.cpp` (vendored I2C reader) |
-   | `input.cpp`       | `_216/input.cpp` (two buttons) or `_18/input.cpp` (one button) |
-   | `power.cpp`       | `_216/power.cpp` (PMU IRQ) or `_18/power.cpp` (PMU + IO expander button) |
-   | `imu.cpp`         | `_216/imu.cpp` (full rotation) or `_18/imu.cpp` (init-only stub) |
-   | `caps.cpp`        | either reference — just edit the struct literal               |
-   | `board_init.cpp`  | `_216/board_init.cpp` (no expander) or `_18/board_init.cpp` (with expander) |
-
-4. **Add a PlatformIO env.** In `firmware/platformio.ini`, copy one of
-   the existing `[env:waveshare_amoled_*]` blocks and adjust:
+4. **Add a PlatformIO env.** In `firmware/platformio.ini`, copy the
+   `[env:cyd_28]` block and adjust:
 
    ```ini
    [env:my_board]
@@ -73,8 +69,9 @@ Optional:
                                      ; branches on this; per-board code may
    ```
 
-   If your panel needs flash > 4 MB (extra animations, larger fonts),
-   copy the `board_upload.*` block from the AMOLED-1.8 env.
+   Also drop `-<chime.cpp> -<es8311.c>` from the filter, and the LVGL
+   `build_flags` trimmed for a small no-PSRAM panel, if they don't apply
+   to your board.
 
 5. **Build.** `pio run -d firmware -e my_board`. The link step is the
    real verification — any missing HAL symbol or duplicated definition
@@ -82,8 +79,8 @@ Optional:
 
 6. **Flash + smoke test.** The first boot should land on the splash
    screen. If it doesn't, check `pio device monitor` for HAL init
-   messages — every reference port logs OK / failure for display, touch,
-   PMU, IMU during `setup()`.
+   messages — the reference port logs OK / failure for display, touch,
+   and power during `setup()`.
 
 7. **Visual QA.** `./screenshot.sh out.png` over USB serial captures
    the live framebuffer at the active resolution. The UI is responsive
@@ -94,28 +91,22 @@ Optional:
 
 ## Common pitfalls
 
-- **Display stays black, no panic.** Usually one of: OPI PSRAM not enabled
-  in platformio.ini (check `board_build.arduino.memory_type = qio_opi`);
-  IO expander not released before `gfx->begin()` (run `io_expander_init()`
-  from `board_init()`); GFX library version too old to know about your
-  panel chip; reset line not pulsed before `gfx->begin()` (do it in
-  `board_init()` for direct-GPIO resets, or via the IO expander otherwise).
-- **Display works but a vertical strip of garbage/stale content shows on
-  one edge.** CO5300-based panels expose their visible viewport at a
-  horizontal offset inside the controller's internal RAM, and the offset
-  varies per physical panel size. The 2.16" port uses `col_offset1 = 0`,
-  the 2.06" uses `col_offset1 = 23`. When adding a new CO5300 board,
-  grab Waveshare's reference value from their `Mylibrary/pin_config.h`
-  (or equivalent) and fine-tune ±1 if centering looks off. SH8601 panels
-  don't have this issue.
+- **Display stays black, no panic.** Usually one of: PSRAM expected but
+  not enabled (only relevant if `BOARD_HAS_PSRAM` is set — check
+  `board_build.arduino.memory_type = qio_opi` for QSPI panels that need
+  it); IO expander not released before `gfx->begin()` (run
+  `io_expander_init()` from `board_init()`); GFX library version too old
+  to know about your panel chip; reset line not pulsed before
+  `gfx->begin()` (do it in `board_init()` for direct-GPIO resets, or via
+  the IO expander otherwise).
 - **Touch reads zeros / wrong coordinates.** The HAL hands LVGL whatever
-  the controller reports — apply any axis swap / mirror inside your
-  `touch.cpp`. CST9220 needs `setSwapXY(true)` + `setMirrorXY(true,
-  false)` on the AMOLED-2.16 board; your controller will likely differ.
+  the controller reports — apply any axis swap / mirror / calibration
+  bounds inside your `touch.cpp` (see `TOUCH_MIN_X`/`MAX_X`/... in
+  `boards/cyd_28/board.h` for a resistive-touch calibration example).
 - **GPL warning when picking a touch driver.** The project intentionally
   avoids copyleft dependencies. If the only available library is GPL,
-  vendor a minimal I2C reader instead (see `_18/touch.cpp`).
+  vendor a minimal reader instead.
 - **Both boards built fine but one runs and the other doesn't.** The
   build_src_filter is per-env — re-check you copied the existing env
-  blocks correctly and the `-<boards/>` then `+<boards/your_one/>`
+  block correctly and the `-<boards/>` then `+<boards/your_one/>`
   ordering is right (filters apply in declaration order).

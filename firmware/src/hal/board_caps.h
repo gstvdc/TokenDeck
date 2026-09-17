@@ -18,6 +18,10 @@ struct BoardCaps {
     bool    has_rotation;    // IMU-driven CPU rotation in the flush callback
     bool    has_battery;     // AXP2101 battery measurement is meaningful
     bool    has_imu;         // QMI8658 (or compatible) is populated
+    bool    has_pwr_button;  // dedicated PWR key (PMU PKEY / IO-expander line)
+                              // that cycles screens/animations. false means the
+                              // board has no such key, so main.cpp's pwr-press
+                              // handler instead treats a screen tap as pairing.
 };
 
 const BoardCaps& board_caps(void);

@@ -413,22 +413,22 @@ void loop() {
 
         if (power_hal_pwr_pressed()) {
             if (!idle_consume_wake_press()) {
-#ifdef BOARD_CYD_28
-                // CYD has no power key: a normal screen tap starts/restarts
-                // pairing only while disconnected. LVGL handles menu taps.
+                if (!board_caps().has_pwr_button) {
+                    // No dedicated power key: a normal screen tap starts/restarts
+                    // pairing only while disconnected. LVGL handles menu taps.
 #ifdef USE_WIFI_BRIDGE
-                if (!wifi_bridge_is_connected()) wifi_bridge_reconnect();
+                    if (!wifi_bridge_is_connected()) wifi_bridge_reconnect();
 #elif defined(USE_USB_SERIAL_BRIDGE)
-                // USB is continuously available while the data cable is connected.
+                    // USB is continuously available while the data cable is connected.
 #else
-                if (ble_get_state() != BLE_STATE_CONNECTED) ble_clear_bonds();
+                    if (ble_get_state() != BLE_STATE_CONNECTED) ble_clear_bonds();
 #endif
-#else
-                // On splash: cycle animations. On the usage view: cycle
-                // screen brightness (single non-splash view, no more screens).
-                if (ui_get_current_screen() == SCREEN_SPLASH) splash_next();
-                else                                          brightness_cycle();
-#endif
+                } else {
+                    // On splash: cycle animations. On the usage view: cycle
+                    // screen brightness (single non-splash view, no more screens).
+                    if (ui_get_current_screen() == SCREEN_SPLASH) splash_next();
+                    else                                          brightness_cycle();
+                }
             }
         }
 

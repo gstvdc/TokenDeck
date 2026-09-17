@@ -19,7 +19,7 @@ sync with the compile-time `BOARD_HAS_*` flags in `board.h`.
 
 | Function                    | Responsibility |
 |-----------------------------|----------------|
-| `display_hal_init`          | Construct the QSPI bus + driver. Must run AFTER `board_init()` so any IO expander has released the LCD reset line. |
+| `display_hal_init`          | Construct the display bus (SPI/QSPI/RGB) + driver. Must run AFTER `board_init()` so any IO expander has released the LCD reset line. |
 | `display_hal_begin`         | `gfx->begin()`, clear screen, set default brightness. Allocate any rotation buffers needed by `display_hal_draw_bitmap`. |
 | `display_hal_set_brightness`| Pass-through to the driver. Driver-defined scale (typically 0..255). |
 | `display_hal_fill_screen`   | Used by tests / boot screen — `gfx->fillScreen(color)`. |
@@ -34,8 +34,7 @@ sync with the compile-time `BOARD_HAS_*` flags in `board.h`.
 | `touch_hal_init`  | Initialize the controller + attach a touch interrupt. Configure axis swap / mirror so coordinates returned in `touch_hal_read` match the panel's pixel coordinates after any rotation. |
 | `touch_hal_read`  | Return the latest sample. **Hard requirement: complete in well under 5 ms** — LVGL polls this every screen refresh and any I2C burst longer than a screen tick will visibly stutter. |
 
-Avoid GPL-licensed drivers — vendor a minimal reader instead. The
-existing AMOLED-1.8 port has a ~40-line FT3168 reader you can model on.
+Avoid GPL-licensed drivers — vendor a minimal reader instead.
 
 ## `input_hal.h`
 
@@ -45,8 +44,10 @@ existing AMOLED-1.8 port has a ~40-line FT3168 reader you can model on.
 | `input_hal_is_held` | Return true while the button is held. Active-low pull-up GPIOs are typical. Boards lacking a secondary button must return `false` for `INPUT_BTN_SECONDARY`. |
 
 The PWR button is **not** here — it belongs to `power_hal` because on
-several boards (including all current reference ports) it's tied to the
-PMU or an IO expander, not a GPIO.
+boards that have one it's tied to a PMU or an IO expander, not a GPIO.
+Whether the board has a PWR button at all is `BoardCaps.has_pwr_button`
+(see `capability-flags.md`); boards without one (like `cyd_28`) route
+its would-be press through a screen tap instead.
 
 ## `power_hal.h`
 

@@ -48,3 +48,4 @@
 #define BOARD_HAS_IMU              0   // TODO
 #define BOARD_HAS_BATTERY          0   // TODO
 #define BOARD_HAS_IO_EXPANDER      0   // TODO
+#define BOARD_HAS_PWR_BUTTON       0   // TODO: dedicated PWR key that cycles screens

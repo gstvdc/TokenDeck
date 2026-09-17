@@ -459,15 +459,15 @@ static void build_pair_group(lv_obj_t* parent) {
     lv_obj_align(l1, LV_ALIGN_TOP_MID, 0, L.pair_y1);
 
     lv_obj_t* l2 = lv_label_create(pair_group);
-#ifdef BOARD_CYD_28
+    if (!board_caps().has_pwr_button) {
 #ifdef USE_WIFI_BRIDGE
-    lv_label_set_text(l2, "connecting...");
+        lv_label_set_text(l2, "connecting...");
 #else
-    lv_label_set_text(l2, "tap the screen");
+        lv_label_set_text(l2, "tap the screen");
 #endif
-#else
-    lv_label_set_text(l2, "hold the power button");
-#endif
+    } else {
+        lv_label_set_text(l2, "hold the power button");
+    }
     lv_obj_set_style_text_font(l2, L.bt_device_font, 0);
     lv_obj_set_style_text_color(l2, COL_DIM, 0);
     lv_obj_align(l2, LV_ALIGN_TOP_MID, 0, L.pair_y2);
