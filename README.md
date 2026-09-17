@@ -1,7 +1,7 @@
 # TokenDeck
 
 <p align="center">
-  <img src="assets/tokendeck-logo-vetor.svg" width="110" alt="TokenDeck Logo" />
+  <img src="assets/tokendeck-logo.png" width="110" alt="TokenDeck Logo" />
 </p>
 
 <p align="center">
