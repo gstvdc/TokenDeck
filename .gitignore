@@ -25,3 +25,6 @@ __pycache__/
 # Local Wi-Fi credentials and generated firmware config
 firmware/.env
 firmware/src/wifi_config.generated.h
+
+# Machine-specific shortcut created by create-shortcut.ps1
+TokenDeck.lnk

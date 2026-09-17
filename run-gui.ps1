@@ -4,9 +4,6 @@ try {
         $pythonExe = "python"
     }
     $guiScript = "${PSScriptRoot}\tokendeck_gui.py"
-    if (-not (Test-Path $guiScript)) {
-        $guiScript = "${PSScriptRoot}\tokenmeter_gui.py"
-    }
     $resolvedGui = (Resolve-Path $guiScript).Path
     & $pythonExe $resolvedGui
     exit $LASTEXITCODE
