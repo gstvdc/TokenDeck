@@ -3,15 +3,19 @@
 
 Discovers the HID-held 'Clawdmeter', connects without scanning,
 finds the custom GATT characteristics, and writes one test payload.
-Run from Terminal.app (which has Bluetooth permission):
+Manual hardware check, not pytest-discoverable (no test_* functions) —
+run from Terminal.app (which has Bluetooth permission), from the repo root:
 
-    cd daemon && ./.venv/bin/python ./test_macos_connect.py
+    ./daemon/.venv/bin/python daemon/tests/manual/macos_connect_check.py
 """
 import asyncio
+import sys
+from pathlib import Path
 
 from bleak import BleakClient
 
-import claude_usage_daemon as d
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+import daemon.claude_usage_daemon as d
 
 
 async def main() -> None:
