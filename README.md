@@ -128,11 +128,10 @@ Launch tools directly from PowerShell, via the Desktop shortcut with the officia
 ## Supported Hardware
 
 * **Primary (Recommended):**
-  - **CYD 2.8-inch / ESP32-2432S028R** (Direct USB CH340 connection on Windows).
-* **Alternative / Legacy BLE Hardware:**
-  - Waveshare ESP32-S3-Touch-AMOLED (2.16", 1.8", 2.06")
-  - Waveshare ESP32-C6-Touch-AMOLED-2.16
-  - Waveshare ESP32-S3-Touch-LCD (1.54", 4.0")
+  - **CYD 2.8-inch / ESP32-2432S028R** (Direct USB CH340 connection on Windows). This is the only board this repository builds firmware for today (`pio run -e cyd_28`).
+* **Retired (BLE, source removed):**
+  - Waveshare ESP32-S3-Touch-AMOLED (2.16", 1.8", 2.06"), ESP32-C6-Touch-AMOLED-2.16, ESP32-S3-Touch-LCD (1.54", 4.0")
+  - Their firmware source was removed when the project pivoted to CYD + USB serial; it's recoverable from git history (pre-rebrand commits) if you need to resurrect a port. The Python daemons still speak the legacy BLE protocol for anyone with a previously-flashed board — see [daemon/README-windows.md](daemon/README-windows.md).
 
 ---
 

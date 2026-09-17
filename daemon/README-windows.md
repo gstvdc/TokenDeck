@@ -3,7 +3,7 @@
 > **CYD 2.8 USB build:** The current default firmware uses
 > `usage_serial_bridge_windows.py` over the CH340 USB cable. It needs no Wi-Fi,
 > Bluetooth pairing, tray app, or BLE daemon. Follow the **Windows quick start**
-> in the [root README](../README.md#current-setup-cyd-28--windows-over-usb).
+> in the [root README](../README.md#getting-started-on-windows).
 > This document remains for the older BLE-based board configurations.
 
 This guide covers running the Clawdmeter Windows daemon manually on native Windows
