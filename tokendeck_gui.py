@@ -7,6 +7,7 @@ Executa a animação de Expanding Cards em 60-144 FPS suaves com transição por
 from __future__ import annotations
 
 import asyncio
+from collections import defaultdict
 import ctypes
 from datetime import datetime
 import json
@@ -33,6 +34,9 @@ from daemon.usage_serial_bridge_windows import (
 )
 
 MUTEX_BRIDGE_NAME = "Local\\TokenDeckUsbBridge"
+DEVICE_CONFIG_FILE = _REPO_ROOT / "daemon" / "device_config.json"
+HISTORY_FILE = _REPO_ROOT / "daemon" / "history.jsonl"
+HISTORY_LOG_INTERVAL = 300  # seconds; mirrors usage_serial_bridge_windows.py's own sampling rate
 
 
 def is_bridge_running() -> bool:
@@ -78,6 +82,7 @@ class TokenDeckBridgeApi:
         self.cached_claude: dict | None = None
         self.next_claude_poll = 0.0
         self.active_cyd_provider = "gemini"
+        self.last_history_write = 0.0
 
     def read_cached_status(self) -> dict | None:
         status_file = _REPO_ROOT / "daemon" / "latest_status.json"
@@ -91,27 +96,69 @@ class TokenDeckBridgeApi:
             pass
         return None
 
-    def get_brightness(self) -> int:
-        config_file = _REPO_ROOT / "daemon" / "device_config.json"
+    def _read_device_config(self) -> dict:
         try:
-            if config_file.exists():
-                with config_file.open("r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    return max(10, min(100, int(data.get("brightness", 80))))
+            if DEVICE_CONFIG_FILE.exists():
+                with DEVICE_CONFIG_FILE.open("r", encoding="utf-8") as f:
+                    return json.load(f)
         except Exception:
             pass
-        return 80
+        return {}
+
+    def _write_device_config(self, patch: dict) -> dict:
+        """Merge ``patch`` into device_config.json, preserving unrelated keys."""
+        data = self._read_device_config()
+        data.update(patch)
+        data["updated_at"] = time.time()
+        try:
+            DEVICE_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+            with DEVICE_CONFIG_FILE.open("w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+        return {"ok": True}
+
+    def get_brightness(self) -> int:
+        data = self._read_device_config()
+        try:
+            return max(10, min(100, int(data.get("brightness", 80))))
+        except (TypeError, ValueError):
+            return 80
+
+    def get_device_config(self) -> dict:
+        """Preferências persistidas do dispositivo, para a tela de Configurações."""
+        data = self._read_device_config()
+        enabled = data.get("enabled_providers", {})
+        clock = data.get("clock", "off")
+        return {
+            "brightness": self.get_brightness(),
+            "clock": clock if clock in ("off", "24", "12") else "off",
+            "enabled_providers": {
+                "claude": bool(enabled.get("claude", True)),
+                "codex": bool(enabled.get("codex", True)),
+                "gemini": bool(enabled.get("gemini", True)),
+            },
+        }
+
+    def set_clock_mode(self, mode: str) -> dict:
+        """Liga/desliga o relógio no título da tela do CYD (off|24|12)."""
+        mode = mode if mode in ("off", "24", "12") else "off"
+        return self._write_device_config({"clock": mode})
+
+    def set_provider_enabled(self, provider: str, enabled: bool) -> dict:
+        """Liga/desliga o envio de um provedor para a bridge/CYD."""
+        if provider not in ("claude", "codex", "gemini"):
+            return {"ok": False, "error": "provedor inválido"}
+        current = self.get_device_config()["enabled_providers"]
+        current[provider] = bool(enabled)
+        return self._write_device_config({"enabled_providers": current})
 
     def set_brightness(self, level: int) -> dict:
         """Define o brilho da tela do ESP32 CYD (10..100%)."""
         val = max(10, min(100, int(level)))
-        config_file = _REPO_ROOT / "daemon" / "device_config.json"
-        try:
-            config_file.parent.mkdir(parents=True, exist_ok=True)
-            with config_file.open("w", encoding="utf-8") as f:
-                json.dump({"brightness": val, "updated_at": time.time()}, f, indent=2)
-        except Exception as exc:
-            return {"ok": False, "error": str(exc), "brightness": val}
+        result = self._write_device_config({"brightness": val})
+        if not result.get("ok"):
+            return {"ok": False, "error": result.get("error"), "brightness": val}
 
         pwm = int(round(val * 255.0 / 100.0))
         bridge_active = is_bridge_running()
@@ -171,17 +218,119 @@ class TokenDeckBridgeApi:
             claude_data = self.cached_claude or {"ok": False}
             active_provider = self.active_cyd_provider
 
+        # A bridge USB (quando ativa) já grava o próprio histórico a cada 5 min;
+        # aqui só gravamos no modo de consulta direta, pra não duplicar amostras.
+        if not (cached and bridge_active):
+            self._maybe_log_history(codex_data, claude_data, gemini_data)
+
         return {
             "port": port,
             "bridge_active": bridge_active,
             "active_provider": active_provider,
             "source_mode": source_mode,
             "brightness": brightness,
+            "config": self.get_device_config(),
             "codex": codex_data,
             "claude": claude_data,
             "gemini": gemini_data,
             "markers": markers,
             "timestamp": time.time(),
+        }
+
+    def _maybe_log_history(self, codex_data: dict, claude_data: dict, gemini_data: dict) -> None:
+        now = time.time()
+        if now - self.last_history_write < HISTORY_LOG_INTERVAL:
+            return
+        self.last_history_write = now
+        record = {"ts": now}
+        for name, data in (("codex", codex_data), ("claude", claude_data), ("gemini", gemini_data)):
+            record[name] = {"s": data.get("s"), "w": data.get("w")} if data.get("ok") else None
+        try:
+            HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+            with HISTORY_FILE.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(record) + "\n")
+        except OSError:
+            pass
+
+    def get_history(self, days: int = 7) -> dict:
+        """Resumo diário + série temporal para a tela de Histórico.
+
+        Lê daemon/history.jsonl (gravado pela bridge USB e, no modo de
+        consulta direta, por esta própria classe) e agrega por dia local.
+        """
+        cutoff = time.time() - days * 86400
+        records: list[dict] = []
+        try:
+            if HISTORY_FILE.exists():
+                for line in HISTORY_FILE.read_text(encoding="utf-8").splitlines():
+                    if not line.strip():
+                        continue
+                    try:
+                        rec = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if rec.get("ts", 0) >= cutoff:
+                        records.append(rec)
+        except OSError:
+            pass
+
+        empty = {"has_data": False, "days": [], "series": {"claude": [], "codex": [], "gemini": []}, "stats": None}
+        if not records:
+            return empty
+
+        by_day: dict[str, list[dict]] = defaultdict(list)
+        for rec in records:
+            day_key = datetime.fromtimestamp(rec["ts"]).strftime("%Y-%m-%d")
+            by_day[day_key].append(rec)
+
+        day_keys = sorted(by_day.keys())
+        series: dict[str, list[float]] = {"claude": [], "codex": [], "gemini": []}
+        days_out: list[dict] = []
+        peak = {"pct": -1.0, "provider": None, "day": None}
+        prev_s: dict[str, float | None] = {"claude": None, "codex": None, "gemini": None}
+        reset_count = 0
+        daily_avgs: list[float] = []
+
+        for day_key in day_keys:
+            day_records = by_day[day_key]
+            day_peak = {"provider": None, "pct": -1.0}
+            day_values: list[float] = []
+            for provider in ("claude", "codex", "gemini"):
+                vals = [r[provider]["s"] for r in day_records
+                        if r.get(provider) and r[provider].get("s") is not None]
+                for v in vals:
+                    if prev_s[provider] is not None and prev_s[provider] - v > 40:
+                        reset_count += 1
+                    prev_s[provider] = v
+                day_max = max(vals) if vals else 0.0
+                series[provider].append(round(day_max, 1))
+                day_values.extend(vals)
+                if day_max > day_peak["pct"]:
+                    day_peak = {"provider": provider, "pct": day_max}
+                if day_max > peak["pct"]:
+                    peak = {"pct": day_max, "provider": provider, "day": day_key}
+            day_avg = round(sum(day_values) / len(day_values), 1) if day_values else 0.0
+            daily_avgs.append(day_avg)
+            days_out.append({
+                "date": day_key,
+                "peak_provider": day_peak["provider"],
+                "peak_pct": round(day_peak["pct"], 1) if day_peak["pct"] >= 0 else 0,
+                "avg_pct": day_avg,
+            })
+
+        avg_daily = round(sum(daily_avgs) / len(daily_avgs), 1) if daily_avgs else 0.0
+        return {
+            "has_data": True,
+            "days": days_out[-days:],
+            "series": {k: v[-days:] for k, v in series.items()},
+            "stats": {
+                "peak_pct": round(peak["pct"], 1),
+                "peak_provider": peak["provider"],
+                "peak_day": peak["day"],
+                "avg_daily": avg_daily,
+                "resets": reset_count,
+                "sample_count": len(records),
+            },
         }
 
     def toggle_bridge(self) -> bool:

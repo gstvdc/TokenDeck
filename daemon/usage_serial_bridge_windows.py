@@ -169,35 +169,114 @@ def read_gemini_payload() -> dict:
     return payload or {"p": "gemini", "ok": False, "st": "unavailable"}
 
 
-def get_target_brightness() -> int:
-    """Return target display brightness percentage (10..100), default 80%."""
-    config_file = _REPO_ROOT / "daemon" / "device_config.json"
+DEVICE_CONFIG_FILE = _REPO_ROOT / "daemon" / "device_config.json"
+HISTORY_FILE = _REPO_ROOT / "daemon" / "history.jsonl"
+HISTORY_INTERVAL_SECONDS = 300  # one sample every 5 minutes
+HISTORY_MAX_LINES = 4000  # ~2 weeks at 5-min resolution
+
+
+def _read_device_config() -> dict:
     try:
-        if config_file.exists():
-            with config_file.open("r", encoding="utf-8") as f:
-                data = json.load(f)
-                val = int(data.get("brightness", 80))
-                return max(10, min(100, val))
+        if DEVICE_CONFIG_FILE.exists():
+            with DEVICE_CONFIG_FILE.open("r", encoding="utf-8") as f:
+                return json.load(f)
     except Exception:
         pass
-    return 80
+    return {}
+
+
+def get_target_brightness(config: dict | None = None) -> int:
+    """Return target display brightness percentage (10..100), default 80%."""
+    data = config if config is not None else _read_device_config()
+    try:
+        return max(10, min(100, int(data.get("brightness", 80))))
+    except (TypeError, ValueError):
+        return 80
+
+
+def get_clock_mode(config: dict | None = None) -> str:
+    """Return the clock display mode: off|24|12."""
+    data = config if config is not None else _read_device_config()
+    mode = data.get("clock", "off")
+    return mode if mode in ("off", "24", "12") else "off"
+
+
+def get_enabled_providers(config: dict | None = None) -> dict:
+    """Return which providers should be sent to the CYD (default: all on)."""
+    data = config if config is not None else _read_device_config()
+    enabled = data.get("enabled_providers", {})
+    return {
+        "codex": bool(enabled.get("codex", True)),
+        "claude": bool(enabled.get("claude", True)),
+        "gemini": bool(enabled.get("gemini", True)),
+    }
+
+
+def _clock_fields(clock_mode: str) -> dict:
+    """"t"/"tf" fields the firmware reads to drive its title-bar clock."""
+    if clock_mode not in ("24", "12"):
+        return {}
+    return {"t": int(time.time()) + time.localtime().tm_gmtoff, "tf": 24 if clock_mode == "24" else 12}
+
+
+def _append_history(payload_list: list[dict]) -> None:
+    """Append one usage sample per provider to the local history log.
+
+    Best-effort: a write failure (disk full, locked file) must never take
+    down the bridge's main loop, so every error is swallowed.
+    """
+    record: dict = {"ts": time.time()}
+    for payload in payload_list:
+        provider = payload.get("p")
+        if provider not in ("claude", "codex", "gemini"):
+            continue
+        record[provider] = {"s": payload.get("s"), "w": payload.get("w")} if payload.get("ok") else None
+    try:
+        HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with HISTORY_FILE.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record) + "\n")
+        lines = HISTORY_FILE.read_text(encoding="utf-8").splitlines()
+        if len(lines) > HISTORY_MAX_LINES:
+            HISTORY_FILE.write_text("\n".join(lines[-HISTORY_MAX_LINES:]) + "\n", encoding="utf-8")
+    except OSError:
+        pass
 
 
 def payloads(claude_payload: dict | None, gemini_payload: dict | None,
-             active_provider: str = "", brightness_pwm: int | None = None) -> list[dict]:
-    codex = read_codex_payload() or {"ok": False}
+             active_provider: str = "", brightness_pwm: int | None = None,
+             enabled: dict | None = None, clock_mode: str = "off") -> list[dict]:
+    enabled = enabled or {"codex": True, "claude": True, "gemini": True}
+
+    if enabled.get("codex", True):
+        codex = read_codex_payload() or {"ok": False}
+    else:
+        codex = {"ok": False, "st": "disabled"}
     codex["p"] = "codex"
-    claude = dict(claude_payload or {"ok": False})
+
+    if enabled.get("claude", True):
+        claude = dict(claude_payload or {"ok": False})
+    else:
+        claude = {"ok": False, "st": "disabled"}
     claude["p"] = "claude"
-    gemini = dict(gemini_payload or {"ok": False})
+
+    if enabled.get("gemini", True):
+        gemini = dict(gemini_payload or {"ok": False})
+    else:
+        gemini = {"ok": False, "st": "disabled"}
     gemini["p"] = "gemini"
+
+    result = [codex, claude, gemini]
     if active_provider:
-        for payload in (codex, claude, gemini):
+        for payload in result:
             payload["a"] = active_provider
     if brightness_pwm is not None:
-        for payload in (codex, claude, gemini):
+        for payload in result:
             payload["brt"] = brightness_pwm
-    return [codex, claude, gemini]
+    clock_extra = _clock_fields(clock_mode)
+    if clock_extra:
+        for payload in result:
+            payload.update(clock_extra)
+    return result
 
 
 def main() -> None:
@@ -209,6 +288,7 @@ def main() -> None:
     active_provider = ""
     next_claude = 0.0
     next_gemini = 0.0
+    next_history = 0.0
     try:
         while True:
             if device is None or not device.is_open:
@@ -238,7 +318,11 @@ def main() -> None:
                     continue
 
             now = time.monotonic()
-            if now >= next_claude:
+            device_config = _read_device_config()
+            enabled_providers = get_enabled_providers(device_config)
+            clock_mode = get_clock_mode(device_config)
+
+            if enabled_providers["claude"] and now >= next_claude:
                 try:
                     token = read_token()
                     claude_payload = asyncio.run(poll_api(token)) if token else None
@@ -249,22 +333,30 @@ def main() -> None:
                     claude_payload = None
                 next_claude = now + CLAUDE_REFRESH_SECONDS
 
-            if now >= next_gemini:
+            if enabled_providers["gemini"] and now >= next_gemini:
                 gemini_payload = read_gemini_payload()
                 next_gemini = now + GEMINI_REFRESH_SECONDS
 
             try:
-                target_pct = get_target_brightness()
+                target_pct = get_target_brightness(device_config)
                 target_pwm = int(round(target_pct * 255.0 / 100.0))
 
                 detected_provider = activity_monitor.poll()
-                if detected_provider:
+                if detected_provider and enabled_providers.get(detected_provider, True):
                     active_provider = detected_provider
-                current_payloads = payloads(claude_payload, gemini_payload, active_provider, target_pwm)
+                current_payloads = payloads(
+                    claude_payload, gemini_payload, active_provider, target_pwm,
+                    enabled=enabled_providers, clock_mode=clock_mode,
+                )
                 for payload in current_payloads:
                     device.write(json.dumps(payload, separators=(",", ":")).encode() + b"\n")
                 device.flush()
                 last_sent_brightness_pwm = target_pwm
+
+                now_wall = time.time()
+                if now_wall >= next_history:
+                    _append_history(current_payloads)
+                    next_history = now_wall + HISTORY_INTERVAL_SECONDS
                 try:
                     status_path = _REPO_ROOT / "daemon" / "latest_status.json"
                     status_data = {
