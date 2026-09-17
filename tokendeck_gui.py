@@ -390,7 +390,7 @@ def main():
         width=1160,
         height=720,
         min_size=(960, 580),
-        background_color="#0d1117",
+        background_color="#16171a",
     )
 
     webview.start(debug=False, icon=str(icon_path.resolve()) if icon_path.exists() else None)
