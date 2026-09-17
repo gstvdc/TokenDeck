@@ -213,14 +213,10 @@
 
   <!-- ================= 1. HEADER BAR (NAMEPLATE) ================= -->
   <header class="relative bg-[#1f2024] border-b border-[#34363b] px-6 py-3 flex items-center justify-between shadow-sm">
-    <span class="rivet absolute" style="top:7px; left:7px;"></span>
-    <span class="rivet absolute" style="top:7px; right:7px;"></span>
 
     <div class="flex items-center space-x-3">
       <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-md bg-gradient-to-br from-[#34363b] to-[#1f2024] border border-[#4a4c52] flex items-center justify-center p-1 shadow-sm">
-          <img src="assets/tokendeck-logo-vetor.svg" class="w-full h-full object-contain filter drop-shadow" alt="TokenDeck Logo" />
-        </div>
+        <img src="assets/tokendeck-logo-vetor.svg" class="w-12 h-12 object-contain filter drop-shadow" alt="TokenDeck Logo" />
         <div>
           <span class="font-stencil text-xl font-extrabold tracking-wide uppercase text-[#e9eaed]">TokenDeck</span>
           <div class="font-mono text-[9px] tracking-[.08em] text-[#6c6e74] -mt-0.5">MODELO TD-2.8 · SERIAL COM4</div>
@@ -371,8 +367,7 @@
           <div>
             <div class="flex items-center justify-between pb-2 border-b border-[#34363b]">
               <div class="flex items-center gap-2.5">
-                <span class="lamp-dot lit-teal"></span>
-                <h2 class="font-stencil text-xl font-bold text-[#e9eaed] tracking-wide uppercase">Codex / GPT</h2>
+                <h2 class="text-xl font-bold text-[#e9eaed] tracking-wide">Codex / GPT</h2>
               </div>
               <span id="codex-cyd-badge" class="font-mono text-[11px] font-bold text-[#5fb391] flex items-center gap-1"></span>
             </div>
@@ -386,7 +381,6 @@
                   </svg>
                   Distribuição de Quota
                 </span>
-                <span id="codex-alert" class="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-[#1a2620] text-[#5fb391] border border-[#3d6b57]">SEGURO</span>
               </div>
 
               <div class="space-y-3">
@@ -486,8 +480,7 @@
           <div>
             <div class="flex items-center justify-between pb-2 border-b border-[#34363b]">
               <div class="flex items-center gap-2.5">
-                <span class="lamp-dot lit-phosphor"></span>
-                <h2 class="font-stencil text-xl font-bold text-[#e9eaed] tracking-wide uppercase">Claude</h2>
+                <h2 class="text-xl font-bold text-[#e9eaed] tracking-wide">Claude</h2>
               </div>
               <span id="claude-cyd-badge" class="font-mono text-[11px] font-bold text-[#ffb454] flex items-center gap-1"></span>
             </div>
@@ -501,7 +494,6 @@
                   </svg>
                   Distribuição de Quota
                 </span>
-                <span id="claude-alert" class="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-[#1a2620] text-[#5fb391] border border-[#3d6b57]">SEGURO</span>
               </div>
 
               <div class="space-y-3">
@@ -601,8 +593,7 @@
           <div>
             <div class="flex items-center justify-between pb-2 border-b border-[#34363b]">
               <div class="flex items-center gap-2.5">
-                <span class="lamp-dot lit-violet"></span>
-                <h2 class="font-stencil text-xl font-bold text-[#e9eaed] tracking-wide uppercase">Gemini</h2>
+                <h2 class="text-xl font-bold text-[#e9eaed] tracking-wide">Gemini</h2>
               </div>
               <span id="gemini-cyd-badge" class="font-mono text-[11px] font-bold text-[#ab8ecf] flex items-center gap-1"></span>
             </div>
@@ -616,7 +607,6 @@
                   </svg>
                   Distribuição de Quota
                 </span>
-                <span id="gemini-alert" class="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-[#1a2620] text-[#5fb391] border border-[#3d6b57]">SEGURO</span>
               </div>
 
               <div class="space-y-3">
@@ -950,8 +940,6 @@
 
   <!-- ================= 4. FOOTER BAR ================= -->
   <footer class="relative bg-[#16171a] border-t border-[#26272b] px-6 py-2.5 flex items-center justify-between text-xs font-mono text-[#9a9ca3]">
-    <span class="rivet absolute" style="bottom:7px; left:7px;"></span>
-    <span class="rivet absolute" style="bottom:7px; right:7px;"></span>
     <div id="footer-sync" class="flex items-center gap-2">
       <span class="lamp-dot lit-teal"></span>
       Sincronizado via Bridge USB (a cada 5s)
@@ -979,19 +967,21 @@
       return `${days}d ${remHours}h (${mins} min)`;
     }
 
-    function updateAlertChip(elId, pct) {
+    // Cor de severidade da barra: acima de 85% fica crítico (vermelho), acima de
+    // 60% fica em atenção (âmbar); abaixo disso mantém a cor própria do provedor.
+    function severityColor(pct) {
+      if (pct >= 85) return { fill: '#d1725a', glow: 'rgba(209,114,90,.6)' };
+      if (pct >= 60) return { fill: '#e3a83b', glow: 'rgba(227,168,59,.55)' };
+      return null;
+    }
+
+    function setBarFill(elId, pct, defaultFill, defaultGlow) {
       const el = document.getElementById(elId);
       if (!el) return;
-      if (pct >= 85) {
-        el.innerText = "CRÍTICO";
-        el.className = "font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-[#3a2018] text-[#d1725a] border border-[#6b4136]";
-      } else if (pct >= 60) {
-        el.innerText = "ATENÇÃO";
-        el.className = "font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-[#2a2b2f] text-[#9aa7b5] border border-[#4a4c52]";
-      } else {
-        el.innerText = "SEGURO";
-        el.className = "font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-[#1a2620] text-[#5fb391] border border-[#3d6b57]";
-      }
+      const sev = severityColor(pct);
+      el.style.width = `${Math.min(pct, 100)}%`;
+      el.style.backgroundColor = sev ? sev.fill : defaultFill;
+      el.style.boxShadow = `0 0 6px ${sev ? sev.glow : defaultGlow}`;
     }
 
     function onCardHover(index) {
@@ -1121,13 +1111,12 @@
       document.getElementById('codex-reset-5h').innerText = `Renova em: ${formatMinutes(codex.sr)}`;
       document.getElementById('codex-pct-wk').innerText = `${cWk}%`;
       document.getElementById('codex-reset-wk').innerText = `Renova em: ${formatMinutes(codex.wr)}`;
-      document.getElementById('codex-graph-5h').style.width = `${Math.min(c5h, 100)}%`;
+      setBarFill('codex-graph-5h', c5h, '#5fb391', 'rgba(95,179,145,.6)');
       document.getElementById('codex-graph-5h-text').innerText = `Consumido: ${c5h}% | Livre: ${(100 - c5h).toFixed(0)}%`;
-      document.getElementById('codex-graph-wk').style.width = `${Math.min(cWk, 100)}%`;
+      setBarFill('codex-graph-wk', cWk, '#5fb391', 'rgba(95,179,145,.6)');
       document.getElementById('codex-graph-wk-text').innerText = `Consumido: ${cWk}% | Livre: ${(100 - cWk).toFixed(0)}%`;
       document.getElementById('codex-cpt-pct').innerText = `${c5h}%`;
-      document.getElementById('codex-cpt-bar').style.width = `${Math.min(c5h, 100)}%`;
-      updateAlertChip('codex-alert', Math.max(c5h, cWk));
+      setBarFill('codex-cpt-bar', c5h, '#5fb391', 'rgba(95,179,145,.6)');
       if (activeProvider === 'codex') {
         document.getElementById('codex-cyd-badge').innerHTML = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg> NA TELA CYD`;
         document.getElementById('codex-cpt-cyd').innerText = "CYD";
@@ -1144,13 +1133,12 @@
       document.getElementById('claude-reset-5h').innerText = `Renova em: ${formatMinutes(claude.sr)}`;
       document.getElementById('claude-pct-wk').innerText = `${clWk}%`;
       document.getElementById('claude-reset-wk').innerText = `Renova em: ${formatMinutes(claude.wr)}`;
-      document.getElementById('claude-graph-5h').style.width = `${Math.min(cl5h, 100)}%`;
+      setBarFill('claude-graph-5h', cl5h, '#ffb454', 'rgba(255,180,84,.6)');
       document.getElementById('claude-graph-5h-text').innerText = `Consumido: ${cl5h}% | Livre: ${(100 - cl5h).toFixed(0)}%`;
-      document.getElementById('claude-graph-wk').style.width = `${Math.min(clWk, 100)}%`;
+      setBarFill('claude-graph-wk', clWk, '#ffb454', 'rgba(255,180,84,.6)');
       document.getElementById('claude-graph-wk-text').innerText = `Consumido: ${clWk}% | Livre: ${(100 - clWk).toFixed(0)}%`;
       document.getElementById('claude-cpt-pct').innerText = `${cl5h}%`;
-      document.getElementById('claude-cpt-bar').style.width = `${Math.min(cl5h, 100)}%`;
-      updateAlertChip('claude-alert', Math.max(cl5h, clWk));
+      setBarFill('claude-cpt-bar', cl5h, '#ffb454', 'rgba(255,180,84,.6)');
       if (activeProvider === 'claude') {
         document.getElementById('claude-cyd-badge').innerHTML = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg> NA TELA CYD`;
         document.getElementById('claude-cpt-cyd').innerText = "CYD";
@@ -1167,13 +1155,12 @@
       document.getElementById('gemini-reset-5h').innerText = `Renova em: ${formatMinutes(gemini.sr)}`;
       document.getElementById('gemini-pct-wk').innerText = `${gWk}%`;
       document.getElementById('gemini-reset-wk').innerText = `Renova em: ${formatMinutes(gemini.wr)}`;
-      document.getElementById('gemini-graph-5h').style.width = `${Math.min(g5h, 100)}%`;
+      setBarFill('gemini-graph-5h', g5h, '#ab8ecf', 'rgba(171,142,207,.6)');
       document.getElementById('gemini-graph-5h-text').innerText = `Consumido: ${g5h}% | Livre: ${(100 - g5h).toFixed(0)}%`;
-      document.getElementById('gemini-graph-wk').style.width = `${Math.min(gWk, 100)}%`;
+      setBarFill('gemini-graph-wk', gWk, '#ab8ecf', 'rgba(171,142,207,.6)');
       document.getElementById('gemini-graph-wk-text').innerText = `Consumido: ${gWk}% | Livre: ${(100 - gWk).toFixed(0)}%`;
       document.getElementById('gemini-cpt-pct').innerText = `${g5h}%`;
-      document.getElementById('gemini-cpt-bar').style.width = `${Math.min(g5h, 100)}%`;
-      updateAlertChip('gemini-alert', Math.max(g5h, gWk));
+      setBarFill('gemini-cpt-bar', g5h, '#ab8ecf', 'rgba(171,142,207,.6)');
       if (activeProvider === 'gemini') {
         document.getElementById('gemini-cyd-badge').innerHTML = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg> NA TELA CYD`;
         document.getElementById('gemini-cpt-cyd').innerText = "CYD";
