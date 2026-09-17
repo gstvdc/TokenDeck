@@ -22,9 +22,10 @@ daemon/.gemini-state/
 __pycache__/
 *.pyc
 
-# Local Wi-Fi credentials and generated firmware config
-firmware/.env
-firmware/src/wifi_config.generated.h
-
 # Machine-specific shortcut created by create-shortcut.ps1
 TokenDeck.lnk
+
+# Runtime state written by the app/bridge, not project config
+daemon/device_config.json
+daemon/history.jsonl
+daemon/latest_status.json

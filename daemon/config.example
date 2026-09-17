@@ -14,7 +14,6 @@
 #     usage rose most recently (i.e. the one you're actively using). Before any
 #     change is seen it shows the plan with the highest current usage.
 #   - Unset (default) = just ~/.claude, unchanged single-plan behavior.
-#   - install.sh can detect your ~/.claude* dirs and fill this in for you.
 # config_dirs = ~/.claude, ~/.claude-work
 
 # Play a sound on the device when your 5-hour session limit resets, so you know

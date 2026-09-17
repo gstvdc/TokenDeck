@@ -12,12 +12,7 @@
 #include "idle.h"
 #include "idle_cfg.h"
 #include "brightness.h"
-#include "wifi_bridge.h"
-#ifdef USE_WIFI_BRIDGE
-#include "wifi_config.generated.h"
-#else
 #define DEVICE_NAME "TokenDeck"
-#endif
 
 #include "hal/board_caps.h"
 #include "hal/display_hal.h"
@@ -276,17 +271,13 @@ void setup() {
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(indev, my_touch_cb);
 
-#ifdef USE_WIFI_BRIDGE
-    wifi_bridge_init();
-#elif !defined(USE_USB_SERIAL_BRIDGE)
+#ifndef USE_USB_SERIAL_BRIDGE
     ble_init();
 #endif
     input_hal_init();
 
     ui_init();
-#ifdef USE_WIFI_BRIDGE
-    ui_update_ble_status(BLE_STATE_ADVERTISING, DEVICE_NAME, "");
-#elif defined(USE_USB_SERIAL_BRIDGE)
+#ifdef USE_USB_SERIAL_BRIDGE
     ui_update_ble_status(BLE_STATE_CONNECTED, "USB", "");
 #else
     ui_update_ble_status(ble_get_state(), ble_get_device_name(), ble_get_mac_address());
@@ -294,9 +285,7 @@ void setup() {
     ui_update_battery(power_hal_battery_pct(), power_hal_is_charging());
     ui_show_screen(SCREEN_SPLASH);
 
-#ifdef USE_WIFI_BRIDGE
-    Serial.printf("Dashboard ready (%s, %dx%d), waiting for data over WiFi...\n",
-#elif defined(USE_USB_SERIAL_BRIDGE)
+#ifdef USE_USB_SERIAL_BRIDGE
     Serial.printf("Dashboard ready (%s, %dx%d), waiting for data over USB...\n",
 #else
     Serial.printf("Dashboard ready (%s, %dx%d), waiting for data on BLE...\n",
@@ -356,9 +345,7 @@ void loop() {
     idle_tick();
     lv_timer_handler();
     ui_tick_anim();
-#ifdef USE_WIFI_BRIDGE
-    wifi_bridge_tick();
-#elif !defined(USE_USB_SERIAL_BRIDGE)
+#ifndef USE_USB_SERIAL_BRIDGE
     ble_tick();
 #endif
     power_hal_tick();
@@ -416,9 +403,7 @@ void loop() {
                 if (!board_caps().has_pwr_button) {
                     // No dedicated power key: a normal screen tap starts/restarts
                     // pairing only while disconnected. LVGL handles menu taps.
-#ifdef USE_WIFI_BRIDGE
-                    if (!wifi_bridge_is_connected()) wifi_bridge_reconnect();
-#elif defined(USE_USB_SERIAL_BRIDGE)
+#ifdef USE_USB_SERIAL_BRIDGE
                     // USB is continuously available while the data cable is connected.
 #else
                     if (ble_get_state() != BLE_STATE_CONNECTED) ble_clear_bonds();
@@ -437,10 +422,7 @@ void loop() {
 #endif
     }
 
-#ifdef USE_WIFI_BRIDGE
-    ble_state_t bs = wifi_bridge_is_connected()
-                   ? BLE_STATE_CONNECTED : BLE_STATE_ADVERTISING;
-#elif defined(USE_USB_SERIAL_BRIDGE)
+#ifdef USE_USB_SERIAL_BRIDGE
     ble_state_t bs = BLE_STATE_CONNECTED;
 #else
     ble_state_t bs = ble_get_state();
@@ -455,7 +437,7 @@ void loop() {
     int  pct      = power_hal_battery_pct();
     bool charging = power_hal_is_charging();
     if (pct != last_pct || charging != last_charging) {
-#if !defined(USE_WIFI_BRIDGE) && !defined(USE_USB_SERIAL_BRIDGE)
+#ifndef USE_USB_SERIAL_BRIDGE
         if (pct != last_pct) ble_set_battery_level(pct);
 #endif
         last_pct = pct;
@@ -465,10 +447,7 @@ void loop() {
 
     check_serial_cmd();
 
-#ifdef USE_WIFI_BRIDGE
-    String bridge_json;
-    if (wifi_bridge_pop(bridge_json)) process_usage_json(bridge_json.c_str());
-#elif !defined(USE_USB_SERIAL_BRIDGE)
+#ifndef USE_USB_SERIAL_BRIDGE
     if (ble_has_data()) {
         if (parse_json(ble_get_data(), &usage)) {
             if (usage.ok) {

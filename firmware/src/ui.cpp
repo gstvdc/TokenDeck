@@ -8,9 +8,6 @@
 #include "gemini_logo.h"
 #include "icons.h"
 #include "hal/board_caps.h"
-#ifdef USE_WIFI_BRIDGE
-#include "wifi_bridge.h"
-#endif
 
 // Custom fonts (scaled for 314 PPI, ~1.9x from original 165 PPI)
 LV_FONT_DECLARE(font_tiempos_56);
@@ -449,22 +446,14 @@ static void build_pair_group(lv_obj_t* parent) {
     lv_obj_add_event_cb(pair_group, pair_click_cb, LV_EVENT_CLICKED, NULL);
 
     lv_obj_t* l1 = lv_label_create(pair_group);
-#ifdef USE_WIFI_BRIDGE
-    lv_label_set_text(l1, "WiFi");
-#else
     lv_label_set_text(l1, "To pair");
-#endif
     lv_obj_set_style_text_font(l1, L.bt_status_font, 0);
     lv_obj_set_style_text_color(l1, COL_TEXT, 0);
     lv_obj_align(l1, LV_ALIGN_TOP_MID, 0, L.pair_y1);
 
     lv_obj_t* l2 = lv_label_create(pair_group);
     if (!board_caps().has_pwr_button) {
-#ifdef USE_WIFI_BRIDGE
-        lv_label_set_text(l2, "connecting...");
-#else
         lv_label_set_text(l2, "tap the screen");
-#endif
     } else {
         lv_label_set_text(l2, "hold the power button");
     }
@@ -473,11 +462,7 @@ static void build_pair_group(lv_obj_t* parent) {
     lv_obj_align(l2, LV_ALIGN_TOP_MID, 0, L.pair_y2);
 
     lv_obj_t* l3 = lv_label_create(pair_group);
-#ifdef USE_WIFI_BRIDGE
-    lv_label_set_text(l3, "tap to retry");
-#else
     lv_label_set_text(l3, "once to pair");
-#endif
     lv_obj_set_style_text_font(l3, L.bt_device_font, 0);
     lv_obj_set_style_text_color(l3, COL_DIM, 0);
     lv_obj_align(l3, LV_ALIGN_TOP_MID, 0, L.pair_y3);
@@ -884,13 +869,8 @@ static void global_click_cb(lv_event_t* e) {
 static void pair_click_cb(lv_event_t* e) {
     lv_event_stop_bubbling(e);
     if (!s_ble_connected) {
-#ifdef USE_WIFI_BRIDGE
-        wifi_bridge_reconnect();
-        lv_label_set_text(lbl_anim, "Connecting...");
-#else
         ble_clear_bonds();
         lv_label_set_text(lbl_anim, "Pairing...");
-#endif
     }
 }
 
