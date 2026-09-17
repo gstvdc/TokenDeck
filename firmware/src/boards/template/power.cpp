@@ -4,10 +4,10 @@
 
 // Minimal stub — replace with real power management for your board.
 //
-// If your board has an AXP2101 or similar PMU, mirror
-// boards/waveshare_amoled_216/power.cpp. If the PWR button is wired
-// somewhere other than the PMU's PKEY pin (e.g. through an IO expander
-// like the AMOLED-1.8 board), look at that port instead.
+// If your board has an AXP2101 or similar PMU, or a PWR button wired
+// through an IO expander rather than the PMU's PKEY pin, worked examples
+// (waveshare_amoled_216 / waveshare_amoled_18) are in git history — see
+// CLAUDE.md's "Project context" section for how to find them.
 //
 // If your board has no PMU and no PWR button, leave the stubs as below
 // and set BOARD_HAS_BATTERY=0 in board.h — the UI honors caps.has_battery

@@ -5,9 +5,11 @@
 
 // TODO: replace the body with a driver for your controller. Two patterns:
 //   1. A library (SensorLib's CSTxxx, TAMC_GT911, etc.) — add to lib_deps
-//      in platformio.ini, mirror the AMOLED-2.16 port's touch.cpp.
+//      in platformio.ini.
 //   2. A minimal vendored reader — preferred when the only available
-//      library is GPL-licensed (see boards/waveshare_amoled_18/touch.cpp).
+//      library is GPL-licensed. Worked examples of both patterns
+//      (waveshare_amoled_216 / waveshare_amoled_18) are in git history —
+//      see CLAUDE.md's "Project context" section for how to find them.
 //
 // Whichever you pick, touch_hal_read() must complete in well under 5 ms
 // (a single I2C burst is fine) so it doesn't drop frames.

@@ -41,7 +41,8 @@ void display_hal_draw_bitmap(int32_t x, int32_t y, int32_t w, int32_t h,
     // If your panel needs CPU rotation (no native MADCTL rotate), set
     // BOARD_HAS_ROTATION=1 in board.h, allocate a rotation strip buffer
     // in display_hal_begin(), and transform (x, y, w, h) + pixels here.
-    // See boards/waveshare_amoled_216/display.cpp for a worked example.
+    // A worked example (CPU strip rotation) is in git history on the
+    // retired waveshare_amoled_216 port — see CLAUDE.md's "Project context".
 }
 
 void display_hal_tick(void) {

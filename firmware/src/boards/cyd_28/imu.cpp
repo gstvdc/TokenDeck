@@ -1,8 +1,6 @@
 #include "../../hal/imu_hal.h"
 
-// No IMU on this template. If your board ships an accelerometer (e.g.
-// QMI8658 + want auto-rotation), copy boards/waveshare_amoled_216/imu.cpp
-// here and set BOARD_HAS_ROTATION=1 in board.h.
+// No IMU on the CYD 2.8" — rotation is fixed.
 
 void    imu_hal_init(void) {}
 void    imu_hal_tick(void) {}

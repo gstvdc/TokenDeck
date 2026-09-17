@@ -4,7 +4,7 @@
 #   ./flash-mac.sh <board>                       # auto-detect /dev/cu.usbmodem*
 #   ./flash-mac.sh <board> /dev/cu.usbmodem1101  # explicit USB serial port
 #
-# <board> is the PlatformIO env name, e.g. waveshare_amoled_216 or waveshare_amoled_18.
+# <board> is the PlatformIO env name, e.g. cyd_28.
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

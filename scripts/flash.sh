@@ -4,7 +4,7 @@
 #   ./flash.sh <board>                  # default port /dev/ttyACM0
 #   ./flash.sh <board> /dev/ttyACM1     # explicit USB serial port
 #
-# <board> is the PlatformIO env name, e.g. waveshare_amoled_216 or waveshare_amoled_18.
+# <board> is the PlatformIO env name, e.g. cyd_28.
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
