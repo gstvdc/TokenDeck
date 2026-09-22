@@ -10,16 +10,29 @@
       -webkit-user-select: none; user-select: none; cursor: pointer;
     }
     video {
-      width: 100%; height: 100%; object-fit: contain; display: block;
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    #whiteout {
+      position: fixed; inset: 0; background: #fff;
+      opacity: 0; pointer-events: none;
     }
   </style>
 </head>
 <body>
   <video id="intro" src="assets/intro.mp4" autoplay muted playsinline></video>
+  <div id="whiteout"></div>
   <script>
-    // Vídeo de abertura ao iniciar o app. Termina sozinho quando o vídeo acaba,
-    // por clique (skip), ou por um teto de segurança caso o autoplay/codec falhe.
+    // Vídeo de abertura ao iniciar o app. O vídeo termina em um frame branco;
+    // ao final (natural, por clique de skip, ou pelo teto de segurança) a
+    // splash trava nesse branco e o dissolve, enquanto a janela do GUI
+    // (carregada por trás, também começando de um overlay branco) dissolve
+    // o próprio branco em sincronia — dá a impressão de uma única transição
+    // contínua, em vez de um corte seco entre as duas janelas.
+    const REVEAL_MS = 550;
+
     const video = document.getElementById('intro');
+    const whiteout = document.getElementById('whiteout');
+    let revealed = false;
     let finished = false;
 
     function finish() {
@@ -30,15 +43,42 @@
       }
     }
 
-    video.addEventListener('ended', finish);
-    document.body.addEventListener('click', finish);
+    function reveal() {
+      if (revealed) return;
+      revealed = true;
+
+      // Casa instantaneamente com o último frame do vídeo (branco) — troca
+      // invisível de vídeo para overlay.
+      video.style.display = 'none';
+      whiteout.style.transition = 'none';
+      whiteout.style.opacity = '1';
+
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.reveal_main) {
+        window.pywebview.api.reveal_main();
+      }
+
+      // Dois rAF para garantir que o navegador já pintou o opacity:1 acima
+      // antes de iniciar a transição — senão o browser pode colapsar as duas
+      // mudanças e nunca animar.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          whiteout.style.transition = `opacity ${REVEAL_MS}ms ease`;
+          whiteout.style.opacity = '0';
+        });
+      });
+
+      setTimeout(finish, REVEAL_MS + 60);
+    }
+
+    video.addEventListener('ended', reveal);
+    document.body.addEventListener('click', reveal);
 
     // muted é necessário para o autoplay ser garantido (sem isso, engines
     // baseadas em Chromium como o WebView2 podem simplesmente não tocar).
-    video.play().catch(finish);
+    video.play().catch(reveal);
 
     // teto de segurança: nunca trava o app se o vídeo não carregar/tocar.
-    setTimeout(finish, 8000);
+    setTimeout(reveal, 8000);
   </script>
 </body>
 </html>

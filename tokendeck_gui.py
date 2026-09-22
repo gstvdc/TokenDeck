@@ -373,18 +373,35 @@ class TokenDeckBridgeApi:
 
 
 class SplashApi:
-    """API exposta ao vídeo de abertura: só sabe encerrar a splash e revelar a janela principal."""
+    """API exposta ao vídeo de abertura: revela a janela principal (em sincronia
+    com o fade branco da splash) e depois encerra a splash."""
 
     def __init__(self, splash_window, main_window):
         self._splash_window = splash_window
         self._main_window = main_window
+        self._shown = False
         self._done = False
+
+    def reveal_main(self) -> None:
+        if self._shown:
+            return
+        self._shown = True
+        self._main_window.show()
+        # Dispara o fade-out do overlay branco do GUI no mesmo instante em que
+        # a splash começa a dissolver o dela — as duas janelas ficam
+        # sobrepostas por uma fração de segundo, ambas partindo de branco, o
+        # que disfarça o corte quando a splash é destruída em seguida.
+        try:
+            self._main_window.evaluate_js("window.__beginReveal && window.__beginReveal()")
+        except Exception:
+            pass
 
     def splash_finished(self) -> None:
         if self._done:
             return
         self._done = True
-        self._main_window.show()
+        if not self._shown:
+            self.reveal_main()
         self._splash_window.destroy()
 
 
@@ -399,14 +416,26 @@ def main():
     splash_path = _REPO_ROOT / "gui" / "splash.html"
     icon_path = _REPO_ROOT / "assets" / "tokendeck.ico"
 
+    # Posição centralizada calculada manualmente (em vez de deixar o pywebview
+    # centralizar cada janela por conta própria) para que a janela principal e
+    # a do vídeo de abertura caiam exatamente no mesmo lugar — senão a troca
+    # entre elas "pula" de posição, como se fossem duas janelas distintas.
+    win_w, win_h = 1160, 720
+    screen = webview.screens[0] if webview.screens else None
+    screen_w, screen_h = (screen.width, screen.height) if screen else (1920, 1080)
+    win_x = max(0, (screen_w - win_w) // 2)
+    win_y = max(0, (screen_h - win_h) // 2)
+
     # Cria a janela principal já com motor WebView2 (GPU, 120 FPS), mas oculta —
     # só aparece quando o vídeo de abertura terminar (ver SplashApi abaixo).
     main_window = webview.create_window(
         title="TokenDeck — Multi-Model AI Usage Monitor",
         url=str(html_path.resolve()),
         js_api=api,
-        width=1160,
-        height=720,
+        width=win_w,
+        height=win_h,
+        x=win_x,
+        y=win_y,
         min_size=(960, 580),
         background_color="#16171a",
         hidden=True,
@@ -414,24 +443,19 @@ def main():
 
     splash_window = None
     if splash_path.exists():
-        # Janela sem moldura do tamanho exato da tela do sistema, na posição
-        # (0,0) — preenche a tela igual a um fullscreen visualmente, mas sem
-        # entrar no modo fullscreen exclusivo do SO (que pode se comportar
-        # de forma estranha com alt-tab / barra de tarefas).
-        screen = webview.screens[0] if webview.screens else None
-        screen_size = (screen.width, screen.height) if screen else (1920, 1080)
         splash_window = webview.create_window(
             title="TokenDeck",
             url=str(splash_path.resolve()),
-            width=screen_size[0],
-            height=screen_size[1],
-            x=0,
-            y=0,
+            width=win_w,
+            height=win_h,
+            x=win_x,
+            y=win_y,
             frameless=True,
             on_top=True,
             background_color="#000000",
         )
-        splash_window.expose(SplashApi(splash_window, main_window).splash_finished)
+        splash_api = SplashApi(splash_window, main_window)
+        splash_window.expose(splash_api.reveal_main, splash_api.splash_finished)
 
     webview.start(debug=False, icon=str(icon_path.resolve()) if icon_path.exists() else None)
 

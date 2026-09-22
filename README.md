@@ -64,6 +64,8 @@ TokenDeck presents this telemetry through two synchronized environments:
 * **Automatic Screen Switching**: The CYD hardware display detects active AI conversations on the computer and switches screens instantly to match the active assistant.
 * **Vector Iconography**: 100% vector-based UI using Lucide vector icons and official branding.
 * **Integrated Management**: One-click controls to Start/Stop the USB Serial Bridge, Flash Firmware (with automatic COM port release), and Refresh Metrics.
+* **Usage History Tab**: 7-day trend chart and daily summary table per provider (peak, average, detected quota resets), with an animated crossfade when switching tabs.
+* **Guided Setup Wizard**: A 4-step onboarding flow (pair board → providers → authenticate → done) with an interlinked, animated step tracker, plus a project overview panel showing how Claude, Codex, Gemini, and the CYD board connect.
 
 ---
 

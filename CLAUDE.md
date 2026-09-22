@@ -150,6 +150,26 @@ See `~/.claude/projects/.../memory/` files for persistent context (user is an em
 
 ## Recent session highlights
 
+- **GUI: Histórico tab redesign + Setup wizard overhaul (2026-09-21).**
+  Reworked `gui/index.html`'s Histórico tab to reuse the app's existing
+  instrument-panel language (`readout-track`, `lamp-dot`, dashed-divider
+  lists) instead of ad-hoc boxed cards, added a `buildMockHistory()` fallback
+  so the tab renders realistic 7-day sample data when previewed outside
+  pywebview (no `window.pywebview.api`). Added a project-presentation hub to
+  the Setup tab: an SVG/CSS "spokes" diagram connecting the TokenDeck logo to
+  Claude/Codex/Gemini/CYD icons with an animated flowing-gradient stroke, no
+  new dependencies. Rebuilt the 4-step wizard stepper as a single connected
+  track (CSS grid, circles-in-a-row with a trace line touching each edge)
+  where the number pops into a checkmark on completion; added a real
+  crossfade between top-level tabs (`page-fade-out` before `page-anim`) and
+  a direction-aware slide when moving between wizard steps
+  (`step-anim-fwd`/`step-anim-back`). Standardized page padding/max-width
+  across Painel/Config/Histórico/Setup so switching tabs doesn't change the
+  content column's width. Note: the pywebview window (WebView2) can keep a
+  stale render across "reopen the app" if a previous `pythonw.exe` instance
+  is still alive in the background — fully kill it (Task Manager) before
+  relaunching to pick up GUI changes, since pywebview loads `index.html`
+  once at startup and does not hot-reload.
 - **Repo-wide cleanup + CYD-only doc rewrite (2026-09-16).** Removed the
   now-orphaned Waveshare/sim board source (their `platformio.ini` envs had
   already been dropped when the project pivoted to `cyd_28` + the Windows

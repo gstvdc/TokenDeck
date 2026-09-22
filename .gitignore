@@ -8,6 +8,8 @@ firmware/compile_commands.json
 
 # Claude Code
 .claude/
+.agents/
+skills-lock.json
 
 # Node tooling deps (npm install --no-save)
 tools/node_modules/

@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" href="assets/tokendeck.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons via CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -28,9 +28,9 @@
             gemini: '#ab8ecf',
           },
           fontFamily: {
-            sans: ['"IBM Plex Sans"', '-apple-system', 'sans-serif'],
-            mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
-            stencil: ['"Big Shoulders Stencil"', '"IBM Plex Sans"', 'sans-serif'],
+            sans: ['"DM Mono"', 'ui-monospace', 'monospace'],
+            mono: ['"DM Mono"', 'ui-monospace', 'monospace'],
+            stencil: ['"DM Mono"', 'ui-monospace', 'monospace'],
           },
           transitionTimingFunction: {
             'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
@@ -45,12 +45,12 @@
       background-image: radial-gradient(rgba(233,234,237,.035) 1px, transparent 1.4px);
       background-size: 20px 20px;
       color: #e9eaed;
-      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'DM Mono', ui-monospace, 'Segoe UI Mono', monospace;
       user-select: none;
       overflow: hidden;
     }
 
-    .font-stencil { font-family: 'Big Shoulders Stencil', 'IBM Plex Sans', sans-serif; }
+    .font-stencil { font-family: 'DM Mono', ui-monospace, monospace; }
 
     .cards-grid {
       display: grid;
@@ -69,10 +69,6 @@
       min-width: 0;
       overflow: hidden;
       position: relative;
-    }
-
-    .card-item:not(:last-child) {
-      border-right: 1px solid rgba(52, 54, 59, 0.85);
     }
 
     .card-item[data-active="false"] .card-overlay {
@@ -129,12 +125,78 @@
     .cards-grid.mode-equal .card-item .compact-content {
       display: none !important;
     }
-    .cards-grid.mode-equal .chart-section {
+    .cards-grid.mode-equal .card-footer-status,
+    .cards-grid.mode-equal .chart-title {
       display: none !important;
+    }
+    .cards-grid.mode-equal .chart-section {
+      background: transparent !important;
+      border: none !important;
+      border-radius: 0 !important;
+      padding: 0 !important;
     }
 
     .progress-bar-fill {
       transition: width 500ms ease-out;
+    }
+
+    /* ---------- page switch (Painel/Config/Histórico/Setup) ---------- */
+    @keyframes pageFadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pageFadeOut {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(-4px); }
+    }
+    .page-anim {
+      animation: pageFadeIn 280ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .page-fade-out {
+      animation: pageFadeOut 120ms cubic-bezier(0.4, 0, 1, 1) forwards;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .page-anim, .page-fade-out { animation: none; }
+    }
+
+    /* ---------- setup: transição entre etapas do wizard ---------- */
+    @keyframes stepSlideFwd {
+      from { opacity: 0; transform: translateX(16px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes stepSlideBack {
+      from { opacity: 0; transform: translateX(-16px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .step-anim-fwd { animation: stepSlideFwd 260ms cubic-bezier(0.16, 1, 0.3, 1); }
+    .step-anim-back { animation: stepSlideBack 260ms cubic-bezier(0.16, 1, 0.3, 1); }
+    @media (prefers-reduced-motion: reduce) {
+      .step-anim-fwd, .step-anim-back { animation: none; }
+    }
+
+    /* ---------- terminal-style block telemetry bars ---------- */
+    .term-track {
+      background: #0e0f11; border: 1px solid #26272b; border-radius: 3px; overflow: hidden;
+    }
+    .term-fill {
+      background-image: repeating-linear-gradient(90deg, rgba(0,0,0,.55) 0 3px, transparent 3px 7px);
+    }
+
+    /* ---------- config page: 2x2 grid with ruled dividers ---------- */
+    .cfg-grid { display: grid; grid-template-columns: 1fr; row-gap: 1.5rem; }
+    .cfg-line-v, .cfg-line-h { display: none; }
+    @media (min-width: 1024px) {
+      .cfg-grid {
+        grid-template-columns: 1fr 1px 1fr;
+        grid-template-rows: auto 1px auto;
+        row-gap: 0;
+      }
+      .cfg-line-v { display: block; background: #34363b; grid-column: 2; grid-row: 1 / 4; }
+      .cfg-line-h { display: block; background: #34363b; grid-row: 2; grid-column: 1 / 4; }
+      .cfg-cell-tl { grid-column: 1; grid-row: 1; padding-bottom: 1.75rem; padding-right: 2.5rem; }
+      .cfg-cell-bl { grid-column: 1; grid-row: 3; padding-top: 1.75rem; padding-right: 2.5rem; }
+      .cfg-cell-tr { grid-column: 3; grid-row: 1; padding-bottom: 1.75rem; padding-left: 2.5rem; }
+      .cfg-cell-br { grid-column: 3; grid-row: 3; padding-top: 1.75rem; padding-left: 2.5rem; }
     }
 
     .lucide {
@@ -162,90 +224,165 @@
       border: 1px solid #26272b;
     }
 
+    /* ---------- setup: apresentação do projeto (hub de integrações) ---------- */
+    .hub-node {
+      background: #0e0f11; border: 1px solid #34363b;
+    }
+    .hub-line-base { stroke: #26272b; stroke-width: 1; fill: none; }
+    .hub-line-flow {
+      stroke-width: 2; fill: none; stroke-linecap: round;
+      stroke-dasharray: 10 120;
+      animation: hubFlow 3.2s linear infinite;
+    }
+    @keyframes hubFlow {
+      from { stroke-dashoffset: 130; }
+      to { stroke-dashoffset: -130; }
+    }
+    .hub-core-ring {
+      animation: hubPulse 2.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+    }
+    @keyframes hubPulse {
+      0% { transform: scale(1); opacity: .5; }
+      70% { transform: scale(1.32); opacity: 0; }
+      100% { transform: scale(1.32); opacity: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hub-line-flow { animation: none; stroke-dasharray: none; }
+      .hub-core-ring { animation: none; opacity: 0; }
+    }
+
     /* ---------- nav tabs ---------- */
-    .nav-tabs { display: flex; gap: 4px; }
+    .nav-tabs { display: flex; gap: 4px; position: relative; }
     .nav-tabs a {
       display: flex; align-items: center; gap: 7px;
-      padding: 10px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600;
+      padding: 10px 16px; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 600;
       letter-spacing: .05em; text-transform: uppercase; color: #6c6e74;
       border-bottom: 2px solid transparent; cursor: pointer;
     }
     .nav-tabs a:hover { color: #9a9ca3; }
-    .nav-tabs a.on { color: #ffb454; border-bottom-color: #ffb454; }
+    .nav-tabs a.on { color: #ffb454; }
     .nav-tabs a svg { width: 14px; height: 14px; }
+    .nav-indicator {
+      position: absolute; left: 0; bottom: 0; height: 2px; width: 0;
+      background: #ffb454; border-radius: 1px;
+      transform: translateX(0);
+      transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), width 300ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .nav-indicator { transition: none; }
+    }
 
     .preview-badge {
       display: inline-flex; align-items: center; gap: 6px;
-      font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
+      font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
       color: #9aa7b5; background: #262a30; border: 1px solid #4d5661; padding: 3px 9px; border-radius: 999px;
     }
     .preview-badge i { width: 6px; height: 6px; border-radius: 50%; background: #9aa7b5; }
 
     /* ---------- rocker switch (settings/setup) ---------- */
     .rocker {
-      width: 44px; height: 23px; border-radius: 5px; position: relative; flex: none; cursor: pointer;
+      width: 44px; height: 23px; border-radius: 999px; position: relative; flex: none; cursor: pointer;
       background: linear-gradient(180deg,#1f2024,#17181b); border: 1px solid #4a4c52;
+      transition: border-color .2s ease, box-shadow .25s ease;
     }
-    .rocker::after { content:""; position:absolute; top:-3px; right:-3px; width:6px; height:6px; border-radius:50%; background:#35373c; }
     .rocker i {
-      position:absolute; top:2px; left:2px; width:17px; height:17px; border-radius:3px; background:#45474d;
-      transition: transform .15s ease, background .15s ease; display:block;
+      position:absolute; top:3px; left:3px; width:17px; height:17px; border-radius:50%; background:#45474d;
+      transition: transform .25s cubic-bezier(0.16, 1, 0.3, 1), background .2s ease, box-shadow .25s ease; display:block;
     }
-    .rocker.on i { transform: translateX(20px); }
-    .rocker.on.phosphor { border-color:#8a6a3a; } .rocker.on.phosphor i { background:#ffb454; } .rocker.on.phosphor::after { background:#ffb454; }
-    .rocker.on.teal { border-color:#3d6b57; } .rocker.on.teal i { background:#5fb391; } .rocker.on.teal::after { background:#5fb391; }
-    .rocker.on.violet { border-color:#5c4f77; } .rocker.on.violet i { background:#ab8ecf; } .rocker.on.violet::after { background:#ab8ecf; }
+    .rocker.on i { transform: translateX(21px); }
+    .rocker.on.phosphor { border-color:#8a6a3a; box-shadow: 0 0 12px -1px rgba(255,180,84,.6); }
+    .rocker.on.phosphor i { background:#ffb454; box-shadow: 0 0 9px rgba(255,180,84,.85); }
+    .rocker.on.teal { border-color:#3d6b57; box-shadow: 0 0 12px -1px rgba(95,179,145,.6); }
+    .rocker.on.teal i { background:#5fb391; box-shadow: 0 0 9px rgba(95,179,145,.85); }
+    .rocker.on.violet { border-color:#5c4f77; box-shadow: 0 0 12px -1px rgba(171,142,207,.6); }
+    .rocker.on.violet i { background:#ab8ecf; box-shadow: 0 0 9px rgba(171,142,207,.85); }
 
     /* ---------- stepper (setup) ---------- */
+    .step { display:flex; justify-content:center; }
     .step-lamp {
       width: 24px; height: 24px; border-radius: 50%; display:flex; align-items:center; justify-content:center; flex:none;
-      background:#0e0f11; border:1px solid #4a4c52; font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#6c6e74;
+      background:#0e0f11; border:1px solid #4a4c52; font-family:'DM Mono',monospace; font-size:11px; font-weight:700; color:#6c6e74;
+      transition: background-color .35s ease, border-color .35s ease, color .35s ease, transform .35s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .step.done .step-lamp { background:#5fb391; color:#0e1310; border-color:#5fb391; }
-    .step.active .step-lamp { background:#ffb454; color:#2a1c05; border-color:#ffb454; }
-    .step .trace { height:2px; flex:1; background:#34363b; margin:0 8px; }
-    .step.done .trace { background:#5fb391; opacity:.55; }
+    .step.active .step-lamp { background:#ffb454; color:#2a1c05; border-color:#ffb454; transform: scale(1.08); }
+    /* Trilha única entre os círculos — o segmento inteiro vira a cor de "feito"
+       de uma vez, junto com o efeito de zoom+giro do check surgindo no círculo. */
+    .trace { height:2px; background:#34363b; transition: background-color .4s ease, opacity .4s ease; }
+    .trace.done { background:#5fb391; opacity:.6; }
+    @keyframes stepCheckPop {
+      0% { transform: scale(0.4) rotate(-40deg); opacity: 0; }
+      60% { transform: scale(1.25) rotate(8deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .step-lamp.check-pop { animation: stepCheckPop 420ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .step-label {
+      grid-row: 1; justify-self:center; white-space:nowrap; position:relative;
+      font-family:'DM Mono',monospace; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em;
+      color:#6c6e74; transition: color .35s ease;
+    }
+    .step-label.on { color:#e9eaed; }
+    @media (prefers-reduced-motion: reduce) {
+      .step-lamp, .trace, .step-label { transition: none; }
+      .step-lamp.check-pop { animation: none; }
+    }
   </style>
 </head>
 <body class="flex flex-col h-screen w-screen justify-between p-0 m-0">
 
+  <!-- Overlay branco que casa com o frame final do vídeo de abertura (splash.html).
+       Fica em opacity:1 até a janela principal ser revelada, aí window.__beginReveal()
+       (chamado pelo Python assim que a janela aparece) dissolve os dois brancos em
+       sincronia para a transição parecer contínua em vez de um corte seco. -->
+  <div id="boot-whiteout" style="position:fixed; inset:0; z-index:9999; background:#fff; opacity:1; pointer-events:none;"></div>
+  <script>
+    window.__beginReveal = function () {
+      const el = document.getElementById('boot-whiteout');
+      if (!el) return;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          el.style.transition = 'opacity 550ms ease';
+          el.style.opacity = '0';
+          setTimeout(() => el.remove(), 650);
+        });
+      });
+    };
+  </script>
+
   <!-- ================= 1. HEADER BAR (NAMEPLATE) ================= -->
-  <header class="relative bg-[#1f2024] border-b border-[#34363b] px-6 py-3 flex items-center justify-between">
+  <header class="relative bg-[#0e0f11] px-6 py-1.5 flex items-center justify-between">
 
     <div class="flex items-center space-x-3">
       <div class="flex items-center gap-2.5">
-        <img src="assets/tokendeck-logo.png" class="w-12 h-12 object-contain" alt="TokenDeck Logo" />
+        <img src="assets/tokendeck-logo.png" class="w-14 h-14 object-contain" alt="TokenDeck Logo" />
         <div>
-          <span class="font-stencil text-xl font-extrabold tracking-wide uppercase text-[#e9eaed]">TokenDeck</span>
-          <div class="font-mono text-[9px] tracking-[.08em] text-[#6c6e74] -mt-0.5">MODELO TD-2.8 · SERIAL COM4</div>
+          <div class="font-mono text-[15px] font-semibold tracking-wide text-[#ffb454] uppercase">CYD 2.8" USB</div>
+          <div class="font-mono text-[12px] tracking-[.08em] text-[#6c6e74]">MODELO TD-2.8 · SERIAL COM4</div>
         </div>
       </div>
-      <span class="font-mono text-[10px] font-semibold tracking-wide bg-[#2e2313] text-[#ffb454] px-2 py-0.5 rounded border border-[#3a4048] uppercase">
-        CYD 2.8" USB
-      </span>
     </div>
 
-    <!-- Status Pills -->
-    <div class="flex items-center space-x-2.5 text-xs font-semibold font-mono">
-      <span id="pill-bridge" class="px-3 py-1 rounded-md bg-[#1a2620] text-[#5fb391] border border-[#3d6b57] transition-all flex items-center gap-1.5">
-        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Status Readouts -->
+    <div class="flex items-center text-[9.5px] font-semibold font-mono">
+      <span id="pill-bridge" class="flex flex-col items-center gap-1 text-[#5fb391] transition-all w-[104px] flex-none">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/>
         </svg>
-        <span>Bridge Ativa</span>
+        <span class="tracking-wide uppercase whitespace-nowrap">Bridge Ativa</span>
       </span>
 
-      <span id="pill-cyd" class="px-3 py-1 rounded-md bg-[#241c30] text-[#ab8ecf] border border-[#4a3a63] transition-all flex items-center gap-1.5">
-        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <span id="pill-cyd" class="flex flex-col items-center gap-1 text-[#ab8ecf] transition-all w-[160px] flex-none">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>
         </svg>
-        <span id="pill-cyd-text">Tela CYD: Gemini</span>
+        <span id="pill-cyd-text" class="tracking-wide uppercase whitespace-nowrap">Tela CYD: Gemini</span>
       </span>
 
-      <span id="pill-serial" class="px-3 py-1 rounded-md bg-[#1a2620] text-[#5fb391] border border-[#3d6b57] transition-all flex items-center gap-1.5">
-        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <span id="pill-serial" class="flex flex-col items-center gap-1 text-[#5fb391] transition-all w-[136px] flex-none">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 2v20"/><path d="m17 7-5-5-5 5"/><rect width="6" height="6" x="9" y="12" rx="1"/>
         </svg>
-        <span id="pill-serial-text">COM4 Conectada</span>
+        <span id="pill-serial-text" class="tracking-wide uppercase whitespace-nowrap">COM4 Conectada</span>
       </span>
     </div>
   </header>
@@ -268,39 +405,42 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
       Setup
     </a>
+    <span id="nav-indicator" class="nav-indicator"></span>
   </nav>
 
   <!-- ================= 2. TOOLBAR ================= -->
   <div class="bg-[#1a1b1e] border-b border-[#26272b] px-6 py-2.5 flex items-center justify-between">
-    <div class="flex items-center space-x-2.5">
+    <div class="flex items-center">
       <!-- Botão Alternar Visualização -->
-      <button id="btn-toggle-view" onclick="toggleViewMode()" class="px-3.5 py-1.5 rounded-md text-xs font-bold font-mono uppercase tracking-wide bg-[#1f2024] hover:bg-[#2f2617] text-[#e9eaed] border border-[#4a3a24] transition flex items-center gap-2 cursor-pointer">
-        <svg class="w-3.5 h-3.5 text-[#ffb454]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button id="btn-toggle-view" onclick="toggleViewMode()" class="px-2.5 py-1.5 rounded-md text-[10.5px] font-bold font-mono uppercase tracking-wide bg-transparent hover:bg-white/5 text-[#ffb454] transition flex items-center gap-1.5 cursor-pointer">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/>
         </svg>
-        <span id="text-toggle-view">Manter 3 Iguais</span>
+        <span id="text-toggle-view">3 Iguais</span>
       </button>
 
       <!-- Botão Iniciar / Parar Bridge -->
-      <button id="btn-bridge" onclick="toggleBridge()" class="px-3.5 py-1.5 rounded-md text-xs font-bold font-mono uppercase tracking-wide bg-[#5a2a20] hover:bg-[#6b3527] text-[#e9eaed] border border-[#7a3f2d] transition flex items-center gap-2 cursor-pointer">
+      <button id="btn-bridge" onclick="toggleBridge()" class="px-2.5 py-1.5 rounded-md text-[10.5px] font-bold font-mono uppercase tracking-wide bg-transparent hover:bg-white/5 text-[#e0685f] transition flex items-center gap-1.5 cursor-pointer">
         <span id="icon-bridge">
           <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect width="14" height="14" x="5" y="5" rx="2"/>
           </svg>
         </span>
-        <span id="text-bridge">Parar Bridge USB</span>
+        <span id="text-bridge">Parar Bridge</span>
       </button>
 
       <!-- Botão Gravar Firmware CYD -->
-      <button id="btn-flash" onclick="flashFirmware()" class="px-3.5 py-1.5 rounded-md text-xs font-bold font-mono uppercase tracking-wide bg-[#262a30] hover:bg-[#2e3238] text-[#9aa7b5] border border-[#4d5661] transition flex items-center gap-2 cursor-pointer">
+      <button id="btn-flash" onclick="flashFirmware()" class="px-2.5 py-1.5 rounded-md text-[10.5px] font-bold font-mono uppercase tracking-wide bg-transparent hover:bg-white/5 text-[#6c6e74] transition flex items-center gap-1.5 cursor-pointer">
         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 2v10"/><path d="m16 8-4 4-4-4"/><rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6 18h.01"/><path d="M10 18h.01"/>
         </svg>
-        <span>Gravar Firmware</span>
+        <span>Firmware</span>
       </button>
 
+      <div class="w-px self-stretch bg-[#34363b] mx-1.5"></div>
+
       <!-- Botão Atualizar Agora -->
-      <button id="btn-refresh" onclick="refreshNow()" class="px-3.5 py-1.5 rounded-md text-xs font-bold font-mono uppercase tracking-wide bg-[#1a2620] hover:bg-[#22301f] text-[#5fb391] border border-[#3d6b57] transition flex items-center gap-2 cursor-pointer">
+      <button id="btn-refresh" onclick="refreshNow()" class="px-2.5 py-1.5 rounded-md text-[10.5px] font-bold font-mono uppercase tracking-wide bg-transparent hover:bg-white/5 text-[#5fb391] transition flex items-center gap-1.5 cursor-pointer">
         <svg id="icon-refresh" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>
         </svg>
@@ -308,38 +448,26 @@
       </button>
     </div>
 
-    <!-- Controle de Brilho CYD Display & Info -->
-    <div class="flex items-center space-x-3">
-      <div class="flex items-center space-x-2.5 bg-[#1f2024] px-3.5 py-1.5 rounded-md border border-[#34363b]">
-        <div class="flex items-center gap-1.5 text-xs font-semibold font-mono uppercase tracking-wide text-[#9a9ca3]">
-          <svg class="w-4 h-4 text-[#ffb454]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="4"/>
-            <path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/>
-            <path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
-          </svg>
-          <span>Brilho ESP32:</span>
-        </div>
-        <input
-          type="range"
-          id="slider-brightness"
-          min="10"
-          max="100"
-          step="5"
-          value="80"
-          oninput="onBrightnessInput(this.value)"
-          onchange="onBrightnessCommit(this.value)"
-          class="w-24 h-1.5 bg-[#0e0f11] rounded-lg appearance-none cursor-pointer accent-[#ffb454] hover:accent-[#ffc574] transition"
-          title="Definir o brilho do display da ESP32 CYD"
-        />
-        <span id="val-brightness" class="font-mono text-xs font-bold text-[#ffb454] w-9 text-right">80%</span>
-      </div>
-
-      <div id="toolbar-msg" class="text-xs text-[#9a9ca3] hidden lg:flex items-center gap-1.5 font-mono">
-        <svg class="w-3.5 h-3.5 text-[#9aa7b5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
-        </svg>
-        <span id="toolbar-msg-text">Passe o mouse sobre qualquer card para expandir.</span>
-      </div>
+    <!-- Controle de Brilho CYD Display -->
+    <div class="flex items-center gap-2 text-[10.5px] font-mono uppercase tracking-wide text-[#6c6e74]">
+      <svg class="w-3.5 h-3.5 text-[#ffb454]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/>
+        <path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+      </svg>
+      <input
+        type="range"
+        id="slider-brightness"
+        min="10"
+        max="100"
+        step="5"
+        value="80"
+        oninput="onBrightnessInput(this.value)"
+        onchange="onBrightnessCommit(this.value)"
+        class="w-24 h-[3px] bg-[#34363b] rounded-full appearance-none cursor-pointer accent-[#ffb454] hover:accent-[#ffc574] transition"
+        title="Definir o brilho do display da ESP32 CYD"
+      />
+      <span id="val-brightness" class="font-bold text-[#ffb454] w-9 text-right">80%</span>
     </div>
   </div>
 
@@ -371,71 +499,59 @@
             </div>
             <p class="text-xs text-[#9a9ca3] mt-1.5">OpenAI Session Logs &amp; Rate Limits</p>
 
-            <div class="chart-section mt-4 bg-[#0e0f11]/85 border border-[#34363b] rounded-lg p-3.5">
-              <div class="flex justify-between items-center mb-2.5">
-                <span class="text-xs font-bold font-mono uppercase tracking-wide text-[#9a9ca3] flex items-center gap-1.5">
-                  <svg class="w-3.5 h-3.5 text-[#5fb391]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
-                  </svg>
-                  Distribuição de Quota
-                </span>
+            <div class="chart-section mt-4 bg-[#0e0f11]/85 border border-[#34363b] rounded-lg p-4">
+              <div class="chart-title flex items-center gap-1.5 text-xs font-bold font-mono uppercase tracking-wide text-[#9a9ca3] mb-3">
+                <svg class="w-3.5 h-3.5 text-[#5fb391]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
+                </svg>
+                Distribuição de Quota
               </div>
 
-              <div class="space-y-3">
+              <div class="space-y-3.5">
                 <div>
-                  <div class="flex justify-between text-[11px] font-mono text-[#9a9ca3] mb-1">
-                    <span>Janela 5h</span>
-                    <span id="codex-graph-5h-text">Consumido: 0% | Livre: 100%</span>
+                  <div class="flex justify-between text-[10.5px] font-mono text-[#6c6e74] mb-1">
+                    <span class="uppercase tracking-wide">Janela 5h</span>
+                    <span id="codex-graph-5h-text" class="text-[#e9eaed] font-semibold">Consumido: 0% | Livre: 100%</span>
                   </div>
-                  <div class="w-full h-3 readout-track rounded-full overflow-hidden">
-                    <div id="codex-graph-5h" class="progress-bar-fill h-full bg-[#5fb391]" style="width: 0%;"></div>
+                  <div class="w-full h-4 term-track">
+                    <div id="codex-graph-5h" class="progress-bar-fill term-fill h-full bg-[#5fb391]" style="width: 0%;"></div>
                   </div>
                 </div>
 
                 <div>
-                  <div class="flex justify-between text-[11px] font-mono text-[#9a9ca3] mb-1">
-                    <span>Semanal</span>
-                    <span id="codex-graph-wk-text">Consumido: 0% | Livre: 100%</span>
+                  <div class="flex justify-between text-[10.5px] font-mono text-[#6c6e74] mb-1">
+                    <span class="uppercase tracking-wide">Semanal</span>
+                    <span id="codex-graph-wk-text" class="text-[#e9eaed] font-semibold">Consumido: 0% | Livre: 100%</span>
                   </div>
-                  <div class="w-full h-3 readout-track rounded-full overflow-hidden">
-                    <div id="codex-graph-wk" class="progress-bar-fill h-full bg-[#5fb391]" style="width: 0%;"></div>
+                  <div class="w-full h-4 term-track">
+                    <div id="codex-graph-wk" class="progress-bar-fill term-fill h-full bg-[#5fb391]" style="width: 0%;"></div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div class="grid grid-cols-2 gap-3 mt-3">
-              <div class="bg-[#0e0f11]/85 p-3 rounded-lg border border-[#34363b]/70">
-                <span class="text-[11px] font-semibold font-mono uppercase tracking-wide text-[#6c6e74] flex items-center gap-1">
-                  <svg class="w-3 h-3 text-[#6c6e74]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                  </svg>
-                  Janela de 5 Horas
-                </span>
-                <div id="codex-pct-5h" class="font-mono text-2xl font-bold text-[#5fb391] mt-1">0%</div>
-                <div id="codex-reset-5h" class="text-[11px] font-mono text-[#6c6e74] mt-1">Renova em: --</div>
-              </div>
-              <div class="bg-[#0e0f11]/85 p-3 rounded-lg border border-[#34363b]/70">
-                <span class="text-[11px] font-semibold font-mono uppercase tracking-wide text-[#6c6e74] flex items-center gap-1">
-                  <svg class="w-3 h-3 text-[#6c6e74]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
-                  </svg>
-                  Limite Semanal
-                </span>
-                <div id="codex-pct-wk" class="font-mono text-2xl font-bold text-[#5fb391] mt-1">0%</div>
-                <div id="codex-reset-wk" class="text-[11px] font-mono text-[#6c6e74] mt-1">Renova em: --</div>
+              <div class="flex gap-8 mt-3.5 pt-3 border-t border-dashed border-[#34363b]">
+                <div>
+                  <div class="text-[9px] font-mono uppercase tracking-wide text-[#6c6e74] mb-0.5">Janela 5h</div>
+                  <div id="codex-pct-5h" class="font-mono text-xl font-bold text-[#5fb391] leading-none">0%</div>
+                  <div id="codex-reset-5h" class="text-[9.5px] font-mono text-[#6c6e74] mt-1">Renova em: --</div>
+                </div>
+                <div>
+                  <div class="text-[9px] font-mono uppercase tracking-wide text-[#6c6e74] mb-0.5">Semanal</div>
+                  <div id="codex-pct-wk" class="font-mono text-xl font-bold text-[#5fb391] leading-none">0%</div>
+                  <div id="codex-reset-wk" class="text-[9.5px] font-mono text-[#6c6e74] mt-1">Renova em: --</div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="bg-[#0e0f11]/90 rounded-md px-3 py-2 text-[11px] font-mono text-[#9a9ca3] flex justify-between items-center border border-[#26272b]">
-            <span id="codex-status" class="flex items-center gap-1">
+          <div class="card-footer-status bg-[#0e0f11]/90 rounded-md px-3.5 py-2.5 text-[10.5px] font-mono text-[#9a9ca3] flex justify-between items-center border border-[#26272b]">
+            <span id="codex-status" class="flex items-center gap-1.5">
               <svg class="w-3 h-3 text-[#5fb391]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
-              Status: Operacional
+              <span class="uppercase tracking-wide">Status: <b class="text-[#e9eaed]">Operacional</b></span>
             </span>
-            <span id="codex-activity">Último prompt: --:--:--</span>
+            <span id="codex-activity" class="uppercase tracking-wide">Último prompt: --:--:--</span>
           </div>
         </div>
 
@@ -450,8 +566,8 @@
             <div id="codex-cpt-pct" class="font-mono text-2xl font-bold text-[#5fb391] tracking-tight mb-1.5">
               0%
             </div>
-            <div class="w-16 h-1.5 readout-track rounded-full overflow-hidden mb-1.5">
-              <div id="codex-cpt-bar" class="progress-bar-fill h-full bg-[#5fb391]" style="width: 0%"></div>
+            <div class="w-16 h-1.5 term-track mb-1.5">
+              <div id="codex-cpt-bar" class="progress-bar-fill term-fill h-full bg-[#5fb391]" style="width: 0%"></div>
             </div>
             <span class="text-[10px] font-mono text-[#6c6e74] font-medium tracking-wide uppercase">Janela 5h</span>
           </div>
@@ -484,71 +600,59 @@
             </div>
             <p class="text-xs text-[#9a9ca3] mt-1.5">Anthropic Claude Code Account &amp; Quota</p>
 
-            <div class="chart-section mt-4 bg-[#0e0f11]/85 border border-[#34363b] rounded-lg p-3.5">
-              <div class="flex justify-between items-center mb-2.5">
-                <span class="text-xs font-bold font-mono uppercase tracking-wide text-[#9a9ca3] flex items-center gap-1.5">
-                  <svg class="w-3.5 h-3.5 text-[#ffb454]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
-                  </svg>
-                  Distribuição de Quota
-                </span>
+            <div class="chart-section mt-4 bg-[#0e0f11]/85 border border-[#34363b] rounded-lg p-4">
+              <div class="chart-title flex items-center gap-1.5 text-xs font-bold font-mono uppercase tracking-wide text-[#9a9ca3] mb-3">
+                <svg class="w-3.5 h-3.5 text-[#ffb454]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
+                </svg>
+                Distribuição de Quota
               </div>
 
-              <div class="space-y-3">
+              <div class="space-y-3.5">
                 <div>
-                  <div class="flex justify-between text-[11px] font-mono text-[#9a9ca3] mb-1">
-                    <span>Janela 5h</span>
-                    <span id="claude-graph-5h-text">Consumido: 0% | Livre: 100%</span>
+                  <div class="flex justify-between text-[10.5px] font-mono text-[#6c6e74] mb-1">
+                    <span class="uppercase tracking-wide">Janela 5h</span>
+                    <span id="claude-graph-5h-text" class="text-[#e9eaed] font-semibold">Consumido: 0% | Livre: 100%</span>
                   </div>
-                  <div class="w-full h-3 readout-track rounded-full overflow-hidden">
-                    <div id="claude-graph-5h" class="progress-bar-fill h-full bg-[#ffb454]" style="width: 0%;"></div>
+                  <div class="w-full h-4 term-track">
+                    <div id="claude-graph-5h" class="progress-bar-fill term-fill h-full bg-[#ffb454]" style="width: 0%;"></div>
                   </div>
                 </div>
 
                 <div>
-                  <div class="flex justify-between text-[11px] font-mono text-[#9a9ca3] mb-1">
-                    <span>Semanal</span>
-                    <span id="claude-graph-wk-text">Consumido: 0% | Livre: 100%</span>
+                  <div class="flex justify-between text-[10.5px] font-mono text-[#6c6e74] mb-1">
+                    <span class="uppercase tracking-wide">Semanal</span>
+                    <span id="claude-graph-wk-text" class="text-[#e9eaed] font-semibold">Consumido: 0% | Livre: 100%</span>
                   </div>
-                  <div class="w-full h-3 readout-track rounded-full overflow-hidden">
-                    <div id="claude-graph-wk" class="progress-bar-fill h-full bg-[#ffb454]" style="width: 0%;"></div>
+                  <div class="w-full h-4 term-track">
+                    <div id="claude-graph-wk" class="progress-bar-fill term-fill h-full bg-[#ffb454]" style="width: 0%;"></div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div class="grid grid-cols-2 gap-3 mt-3">
-              <div class="bg-[#0e0f11]/85 p-3 rounded-lg border border-[#34363b]/70">
-                <span class="text-[11px] font-semibold font-mono uppercase tracking-wide text-[#6c6e74] flex items-center gap-1">
-                  <svg class="w-3.5 h-3.5 text-[#6c6e74]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                  </svg>
-                  Janela de 5 Horas
-                </span>
-                <div id="claude-pct-5h" class="font-mono text-2xl font-bold text-[#ffb454] mt-1">0%</div>
-                <div id="claude-reset-5h" class="text-[11px] font-mono text-[#6c6e74] mt-1">Renova em: --</div>
-              </div>
-              <div class="bg-[#0e0f11]/85 p-3 rounded-lg border border-[#34363b]/70">
-                <span class="text-[11px] font-semibold font-mono uppercase tracking-wide text-[#6c6e74] flex items-center gap-1">
-                  <svg class="w-3.5 h-3.5 text-[#6c6e74]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
-                  </svg>
-                  Limite Semanal
-                </span>
-                <div id="claude-pct-wk" class="font-mono text-2xl font-bold text-[#ffb454] mt-1">0%</div>
-                <div id="claude-reset-wk" class="text-[11px] font-mono text-[#6c6e74] mt-1">Renova em: --</div>
+              <div class="flex gap-8 mt-3.5 pt-3 border-t border-dashed border-[#34363b]">
+                <div>
+                  <div class="text-[9px] font-mono uppercase tracking-wide text-[#6c6e74] mb-0.5">Janela 5h</div>
+                  <div id="claude-pct-5h" class="font-mono text-xl font-bold text-[#ffb454] leading-none">0%</div>
+                  <div id="claude-reset-5h" class="text-[9.5px] font-mono text-[#6c6e74] mt-1">Renova em: --</div>
+                </div>
+                <div>
+                  <div class="text-[9px] font-mono uppercase tracking-wide text-[#6c6e74] mb-0.5">Semanal</div>
+                  <div id="claude-pct-wk" class="font-mono text-xl font-bold text-[#ffb454] leading-none">0%</div>
+                  <div id="claude-reset-wk" class="text-[9.5px] font-mono text-[#6c6e74] mt-1">Renova em: --</div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="bg-[#0e0f11]/90 rounded-md px-3 py-2 text-[11px] font-mono text-[#9a9ca3] flex justify-between items-center border border-[#26272b]">
-            <span id="claude-status" class="flex items-center gap-1">
+          <div class="card-footer-status bg-[#0e0f11]/90 rounded-md px-3.5 py-2.5 text-[10.5px] font-mono text-[#9a9ca3] flex justify-between items-center border border-[#26272b]">
+            <span id="claude-status" class="flex items-center gap-1.5">
               <svg class="w-3 h-3 text-[#ffb454]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
-              Status: Conectado
+              <span class="uppercase tracking-wide">Status: <b class="text-[#e9eaed]">Conectado</b></span>
             </span>
-            <span id="claude-activity">Último prompt: --:--:--</span>
+            <span id="claude-activity" class="uppercase tracking-wide">Último prompt: --:--:--</span>
           </div>
         </div>
 
@@ -563,8 +667,8 @@
             <div id="claude-cpt-pct" class="font-mono text-2xl font-bold text-[#ffb454] tracking-tight mb-1.5">
               0%
             </div>
-            <div class="w-16 h-1.5 readout-track rounded-full overflow-hidden mb-1.5">
-              <div id="claude-cpt-bar" class="progress-bar-fill h-full bg-[#ffb454]" style="width: 0%"></div>
+            <div class="w-16 h-1.5 term-track mb-1.5">
+              <div id="claude-cpt-bar" class="progress-bar-fill term-fill h-full bg-[#ffb454]" style="width: 0%"></div>
             </div>
             <span class="text-[10px] font-mono text-[#6c6e74] font-medium tracking-wide uppercase">Janela 5h</span>
           </div>
@@ -597,71 +701,59 @@
             </div>
             <p class="text-xs text-[#9a9ca3] mt-1.5">Google Gemini Models (Flash &amp; Pro)</p>
 
-            <div class="chart-section mt-4 bg-[#0e0f11]/85 border border-[#34363b] rounded-lg p-3.5">
-              <div class="flex justify-between items-center mb-2.5">
-                <span class="text-xs font-bold font-mono uppercase tracking-wide text-[#9a9ca3] flex items-center gap-1.5">
-                  <svg class="w-3.5 h-3.5 text-[#ab8ecf]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
-                  </svg>
-                  Distribuição de Quota
-                </span>
+            <div class="chart-section mt-4 bg-[#0e0f11]/85 border border-[#34363b] rounded-lg p-4">
+              <div class="chart-title flex items-center gap-1.5 text-xs font-bold font-mono uppercase tracking-wide text-[#9a9ca3] mb-3">
+                <svg class="w-3.5 h-3.5 text-[#ab8ecf]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
+                </svg>
+                Distribuição de Quota
               </div>
 
-              <div class="space-y-3">
+              <div class="space-y-3.5">
                 <div>
-                  <div class="flex justify-between text-[11px] font-mono text-[#9a9ca3] mb-1">
-                    <span>Janela 5h</span>
-                    <span id="gemini-graph-5h-text">Consumido: 0% | Livre: 100%</span>
+                  <div class="flex justify-between text-[10.5px] font-mono text-[#6c6e74] mb-1">
+                    <span class="uppercase tracking-wide">Janela 5h</span>
+                    <span id="gemini-graph-5h-text" class="text-[#e9eaed] font-semibold">Consumido: 0% | Livre: 100%</span>
                   </div>
-                  <div class="w-full h-3 readout-track rounded-full overflow-hidden">
-                    <div id="gemini-graph-5h" class="progress-bar-fill h-full bg-[#ab8ecf]" style="width: 0%;"></div>
+                  <div class="w-full h-4 term-track">
+                    <div id="gemini-graph-5h" class="progress-bar-fill term-fill h-full bg-[#ab8ecf]" style="width: 0%;"></div>
                   </div>
                 </div>
 
                 <div>
-                  <div class="flex justify-between text-[11px] font-mono text-[#9a9ca3] mb-1">
-                    <span>Semanal</span>
-                    <span id="gemini-graph-wk-text">Consumido: 0% | Livre: 100%</span>
+                  <div class="flex justify-between text-[10.5px] font-mono text-[#6c6e74] mb-1">
+                    <span class="uppercase tracking-wide">Semanal</span>
+                    <span id="gemini-graph-wk-text" class="text-[#e9eaed] font-semibold">Consumido: 0% | Livre: 100%</span>
                   </div>
-                  <div class="w-full h-3 readout-track rounded-full overflow-hidden">
-                    <div id="gemini-graph-wk" class="progress-bar-fill h-full bg-[#ab8ecf]" style="width: 0%;"></div>
+                  <div class="w-full h-4 term-track">
+                    <div id="gemini-graph-wk" class="progress-bar-fill term-fill h-full bg-[#ab8ecf]" style="width: 0%;"></div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div class="grid grid-cols-2 gap-3 mt-3">
-              <div class="bg-[#0e0f11]/85 p-3 rounded-lg border border-[#34363b]/70">
-                <span class="text-[11px] font-semibold font-mono uppercase tracking-wide text-[#6c6e74] flex items-center gap-1">
-                  <svg class="w-3 h-3 text-[#6c6e74]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                  </svg>
-                  Janela de 5 Horas
-                </span>
-                <div id="gemini-pct-5h" class="font-mono text-2xl font-bold text-[#ab8ecf] mt-1">0%</div>
-                <div id="gemini-reset-5h" class="text-[11px] font-mono text-[#6c6e74] mt-1">Renova em: --</div>
-              </div>
-              <div class="bg-[#0e0f11]/85 p-3 rounded-lg border border-[#34363b]/70">
-                <span class="text-[11px] font-semibold font-mono uppercase tracking-wide text-[#6c6e74] flex items-center gap-1">
-                  <svg class="w-3 h-3 text-[#6c6e74]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
-                  </svg>
-                  Limite Semanal
-                </span>
-                <div id="gemini-pct-wk" class="font-mono text-2xl font-bold text-[#ab8ecf] mt-1">0%</div>
-                <div id="gemini-reset-wk" class="text-[11px] font-mono text-[#6c6e74] mt-1">Renova em: --</div>
+              <div class="flex gap-8 mt-3.5 pt-3 border-t border-dashed border-[#34363b]">
+                <div>
+                  <div class="text-[9px] font-mono uppercase tracking-wide text-[#6c6e74] mb-0.5">Janela 5h</div>
+                  <div id="gemini-pct-5h" class="font-mono text-xl font-bold text-[#ab8ecf] leading-none">0%</div>
+                  <div id="gemini-reset-5h" class="text-[9.5px] font-mono text-[#6c6e74] mt-1">Renova em: --</div>
+                </div>
+                <div>
+                  <div class="text-[9px] font-mono uppercase tracking-wide text-[#6c6e74] mb-0.5">Semanal</div>
+                  <div id="gemini-pct-wk" class="font-mono text-xl font-bold text-[#ab8ecf] leading-none">0%</div>
+                  <div id="gemini-reset-wk" class="text-[9.5px] font-mono text-[#6c6e74] mt-1">Renova em: --</div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="bg-[#0e0f11]/90 rounded-md px-3 py-2 text-[11px] font-mono text-[#9a9ca3] flex justify-between items-center border border-[#26272b]">
-            <span id="gemini-status" class="flex items-center gap-1">
+          <div class="card-footer-status bg-[#0e0f11]/90 rounded-md px-3.5 py-2.5 text-[10.5px] font-mono text-[#9a9ca3] flex justify-between items-center border border-[#26272b]">
+            <span id="gemini-status" class="flex items-center gap-1.5">
               <svg class="w-3 h-3 text-[#ab8ecf]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
-              Status: Liberado
+              <span class="uppercase tracking-wide">Status: <b class="text-[#e9eaed]">Liberado</b></span>
             </span>
-            <span id="gemini-activity">Último prompt: --:--:--</span>
+            <span id="gemini-activity" class="uppercase tracking-wide">Último prompt: --:--:--</span>
           </div>
         </div>
 
@@ -676,8 +768,8 @@
             <div id="gemini-cpt-pct" class="font-mono text-2xl font-bold text-[#ab8ecf] tracking-tight mb-1.5">
               0%
             </div>
-            <div class="w-16 h-1.5 readout-track rounded-full overflow-hidden mb-1.5">
-              <div id="gemini-cpt-bar" class="progress-bar-fill h-full bg-[#ab8ecf]" style="width: 0%"></div>
+            <div class="w-16 h-1.5 term-track mb-1.5">
+              <div id="gemini-cpt-bar" class="progress-bar-fill term-fill h-full bg-[#ab8ecf]" style="width: 0%"></div>
             </div>
             <span class="text-[10px] font-mono text-[#6c6e74] font-medium tracking-wide uppercase">Janela 5h</span>
           </div>
@@ -689,91 +781,102 @@
   </main>
 
   <!-- ================= PÁGINA: CONFIGURAÇÕES ================= -->
-  <section id="page-config" class="flex-1 w-full overflow-y-auto p-6" style="display:none;">
-    <div class="max-w-5xl mx-auto flex flex-col gap-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="font-stencil text-lg font-bold uppercase tracking-wide text-[#e9eaed]">Configurações</h2>
-          <p class="text-xs text-[#6c6e74] mt-0.5">Preferências do monitor e do dispositivo CYD</p>
-        </div>
-      </div>
+  <section id="page-config" class="flex-1 w-full overflow-y-auto p-6 flex flex-col justify-center" style="display:none;">
+    <div class="max-w-5xl mx-auto flex flex-col gap-4 w-full">
+      <div class="relative cfg-grid">
+        <div class="cfg-line-v"></div>
+        <div class="cfg-line-h"></div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div class="flex flex-col gap-4">
-          <div class="bg-[#1f2024] border border-[#34363b] rounded-lg">
-            <div class="px-4 py-3 border-b border-[#34363b]">
-              <h3 class="font-mono text-[11px] font-semibold uppercase tracking-wide text-[#9a9ca3]">Provedores monitorados</h3>
-              <p class="text-[11px] text-[#6c6e74] mt-0.5">Quais IAs aparecem no Painel e revezam a tela do CYD</p>
-            </div>
-            <div class="px-4 py-1 divide-y divide-dashed divide-[#34363b]">
-              <div class="flex items-center justify-between py-3">
-                <div class="flex items-center gap-2.5">
-                  <span class="w-2 h-2 rounded-sm bg-[#ffb454]"></span>
-                  <div><div class="text-sm font-semibold text-[#e9eaed]">Claude Code</div><div class="font-mono text-[10.5px] text-[#6c6e74]">poll a cada 60s</div></div>
-                </div>
-                <div id="cfg-toggle-claude" class="rocker on phosphor" onclick="cfgToggleProvider('claude')"><i></i></div>
-              </div>
-              <div class="flex items-center justify-between py-3">
-                <div class="flex items-center gap-2.5">
-                  <span class="w-2 h-2 rounded-sm bg-[#5fb391]"></span>
-                  <div><div class="text-sm font-semibold text-[#e9eaed]">Codex</div><div class="font-mono text-[10.5px] text-[#6c6e74]">poll a cada 60s</div></div>
-                </div>
-                <div id="cfg-toggle-codex" class="rocker on teal" onclick="cfgToggleProvider('codex')"><i></i></div>
-              </div>
-              <div class="flex items-center justify-between py-3">
-                <div class="flex items-center gap-2.5">
-                  <span class="w-2 h-2 rounded-sm bg-[#ab8ecf]"></span>
-                  <div><div class="text-sm font-semibold text-[#e9eaed]">Gemini</div><div class="font-mono text-[10.5px] text-[#6c6e74]">via Antigravity</div></div>
-                </div>
-                <div id="cfg-toggle-gemini" class="rocker on violet" onclick="cfgToggleProvider('gemini')"><i></i></div>
-              </div>
-            </div>
-            <p class="text-[10.5px] text-[#6c6e74] px-4 pb-3">Desligar um provedor esconde o card no Painel e o CYD para de recebê-lo (a bridge envia "sem dados" no lugar).</p>
-          </div>
-
-          <div class="bg-[#1f2024] border border-[#34363b] rounded-lg">
-            <div class="px-4 py-3 border-b border-[#34363b]">
-              <h3 class="font-mono text-[11px] font-semibold uppercase tracking-wide text-[#9a9ca3]">Conexão</h3>
-            </div>
-            <div class="px-4 py-3 flex items-center justify-between">
-              <div>
-                <div class="text-sm font-semibold text-[#e9eaed]">Porta serial</div>
-                <div id="cfg-port-readout" class="font-mono text-[11px] text-[#6c6e74] mt-0.5">detectando...</div>
-              </div>
-              <button class="px-3.5 py-1.5 rounded-md text-xs font-bold font-mono uppercase tracking-wide bg-[#1a2620] hover:bg-[#22301f] text-[#5fb391] border border-[#3d6b57] transition cursor-pointer" onclick="refreshNow()">Testar conexão</button>
+        <div class="cfg-cell-tl">
+          <div class="pb-2 border-b border-[#34363b]">
+            <div>
+              <h3 class="text-xs font-bold font-mono uppercase tracking-wide text-[#9a9ca3]">Provedores monitorados</h3>
+              <p class="text-[10.5px] text-[#6c6e74] mt-0.5">Quais IAs aparecem no Painel e revezam a tela do CYD</p>
             </div>
           </div>
+          <div class="py-0.5 divide-y divide-dashed divide-[#34363b]">
+            <div class="flex items-center justify-between py-2.5">
+              <div class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 flex-none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4.709 15.955l4.72-2.647.08-.23-.08-.128H9.2l-.79-.048-2.698-.073-2.339-.097-2.266-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.145-.103.019-.073-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V9.01l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.485-1.215.62-1.64-.389-3.829-.91-1.312-.329h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.086-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z" fill="#D97757"/></svg>
+                <div><div class="text-sm font-semibold text-[#e9eaed]">Claude Code</div><div class="font-mono text-[10.5px] text-[#6c6e74] uppercase tracking-wide">Poll a cada 60s</div></div>
+              </div>
+              <div id="cfg-toggle-claude" class="rocker on phosphor" onclick="cfgToggleProvider('claude')"><i></i></div>
+            </div>
+            <div class="flex items-center justify-between py-2.5">
+              <div class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 flex-none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#e9eaed" fill-rule="evenodd" d="M9.205 8.658v-2.26c0-.19.072-.333.238-.428l4.543-2.616c.619-.357 1.356-.523 2.117-.523 2.854 0 4.662 2.212 4.662 4.566 0 .167 0 .357-.024.547l-4.71-2.759a.797.797 0 00-.856 0l-5.97 3.473zm10.609 8.8V12.06c0-.333-.143-.57-.429-.737l-5.97-3.473 1.95-1.118a.433.433 0 01.476 0l4.543 2.617c1.309.76 2.189 2.378 2.189 3.948 0 1.808-1.07 3.473-2.76 4.163zM7.802 12.703l-1.95-1.142c-.167-.095-.239-.238-.239-.428V5.899c0-2.545 1.95-4.472 4.591-4.472 1 0 1.927.333 2.712.928L8.23 5.067c-.285.166-.428.404-.428.737v6.898zM12 15.128l-2.795-1.57v-3.33L12 8.658l2.795 1.57v3.33L12 15.128zm1.796 7.23c-1 0-1.927-.332-2.712-.927l4.686-2.712c.285-.166.428-.404.428-.737v-6.898l1.974 1.142c.167.095.238.238.238.428v5.233c0 2.545-1.974 4.472-4.614 4.472zm-5.637-5.303l-4.544-2.617c-1.308-.761-2.188-2.378-2.188-3.948A4.482 4.482 0 014.21 6.327v5.423c0 .333.143.571.428.738l5.947 3.449-1.95 1.118a.432.432 0 01-.476 0zm-.262 3.9c-2.688 0-4.662-2.021-4.662-4.519 0-.19.024-.38.047-.57l4.686 2.71c.286.167.571.167.856 0l5.97-3.448v2.26c0 .19-.07.333-.237.428l-4.543 2.616c-.619.357-1.356.523-2.117.523zm5.899 2.83a5.947 5.947 0 005.827-4.756C22.287 18.339 24 15.84 24 13.296c0-1.665-.713-3.282-1.998-4.448.119-.5.19-.999.19-1.498 0-3.401-2.759-5.947-5.946-5.947-.642 0-1.26.095-1.88.31A5.962 5.962 0 0010.205 0a5.947 5.947 0 00-5.827 4.757C1.713 5.447 0 7.945 0 10.49c0 1.666.713 3.283 1.998 4.448-.119.5-.19 1-.19 1.499 0 3.401 2.759 5.946 5.946 5.946.642 0 1.26-.095 1.88-.309a5.96 5.96 0 004.162 1.713z"/></svg>
+                <div><div class="text-sm font-semibold text-[#e9eaed]">Codex</div><div class="font-mono text-[10.5px] text-[#6c6e74] uppercase tracking-wide">Poll a cada 60s</div></div>
+              </div>
+              <div id="cfg-toggle-codex" class="rocker on teal" onclick="cfgToggleProvider('codex')"><i></i></div>
+            </div>
+            <div class="flex items-center justify-between py-2.5">
+              <div class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 flex-none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="#3186FF"/>
+                  <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="url(#cfgGeminiA)"/>
+                  <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="url(#cfgGeminiB)"/>
+                  <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="url(#cfgGeminiC)"/>
+                  <defs>
+                    <linearGradient gradientUnits="userSpaceOnUse" id="cfgGeminiA" x1="7" x2="11" y1="15.5" y2="12"><stop stop-color="#08B962"/><stop offset="1" stop-color="#08B962" stop-opacity="0"/></linearGradient>
+                    <linearGradient gradientUnits="userSpaceOnUse" id="cfgGeminiB" x1="8" x2="11.5" y1="5.5" y2="11"><stop stop-color="#F94543"/><stop offset="1" stop-color="#F94543" stop-opacity="0"/></linearGradient>
+                    <linearGradient gradientUnits="userSpaceOnUse" id="cfgGeminiC" x1="3.5" x2="17.5" y1="13.5" y2="12"><stop stop-color="#FABC12"/><stop offset=".46" stop-color="#FABC12" stop-opacity="0"/></linearGradient>
+                  </defs>
+                </svg>
+                <div><div class="text-sm font-semibold text-[#e9eaed]">Gemini</div><div class="font-mono text-[10.5px] text-[#6c6e74] uppercase tracking-wide">Via Antigravity</div></div>
+              </div>
+              <div id="cfg-toggle-gemini" class="rocker on violet" onclick="cfgToggleProvider('gemini')"><i></i></div>
+            </div>
+          </div>
+          <p class="text-[10.5px] text-[#6c6e74] pt-1.5 border-t border-dashed border-[#34363b] mt-0.5">Desligar um provedor esconde o card no Painel e o CYD para de recebê-lo (a bridge envia "sem dados" no lugar).</p>
         </div>
 
-        <div class="flex flex-col gap-4">
-          <div class="bg-[#1f2024] border border-[#34363b] rounded-lg">
-            <div class="px-4 py-3 border-b border-[#34363b]">
-              <h3 class="font-mono text-[11px] font-semibold uppercase tracking-wide text-[#9a9ca3]">Dispositivo CYD</h3>
-            </div>
-            <div class="px-4 py-1 divide-y divide-dashed divide-[#34363b]">
-              <div class="flex items-center justify-between py-3">
-                <div><div class="text-sm font-semibold text-[#e9eaed]">Relógio na tela</div><div class="font-mono text-[10.5px] text-[#6c6e74]">título da tela vira HH:MM enquanto a bridge está ativa</div></div>
-                <select id="cfg-select-clock" onchange="cfgSetClock(this.value)" class="bg-[#0e0f11] border border-[#4a4c52] text-[#e9eaed] font-mono text-[11.5px] font-medium px-2.5 py-1.5 rounded-md">
-                  <option value="off">Desligado</option><option value="24">24 horas</option><option value="12">12 horas</option>
-                </select>
-              </div>
-              <div class="flex items-center justify-between py-3">
-                <div><div class="text-sm font-semibold text-[#e9eaed]">Brilho</div><div class="font-mono text-[10.5px] text-[#6c6e74]">mesmo controle da barra de ferramentas</div></div>
-                <span id="cfg-brightness-readout" class="font-mono text-sm font-bold text-[#ffb454]">80%</span>
-              </div>
-            </div>
-            <p class="text-[10.5px] text-[#6c6e74] px-4 pb-3">Este hardware (CYD 2.8") não tem alto-falante — não há som de aviso de reset de sessão.</p>
+        <div class="cfg-cell-bl">
+          <div class="pb-2 border-b border-[#34363b] flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-[#5fb391]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="m17 7-5-5-5 5"/><rect width="6" height="6" x="9" y="12" rx="1"/></svg>
+            <h3 class="text-xs font-bold font-mono uppercase tracking-wide text-[#9a9ca3]">Conexão</h3>
           </div>
+          <div class="py-2.5 flex items-center justify-between">
+            <div>
+              <div class="text-sm font-semibold text-[#e9eaed]">Porta serial</div>
+              <div id="cfg-port-readout" class="font-mono text-[11px] text-[#6c6e74] mt-0.5 uppercase tracking-wide">detectando...</div>
+            </div>
+            <button class="px-3.5 py-1.5 rounded-md text-xs font-bold font-mono uppercase tracking-wide bg-transparent hover:bg-white/5 text-[#5fb391] border border-[#3d6b57] transition cursor-pointer" onclick="refreshNow()">Testar conexão</button>
+          </div>
+        </div>
 
-          <div class="bg-[#1f2024] border border-[#34363b] rounded-lg">
-            <div class="px-4 py-3 border-b border-[#34363b]">
-              <h3 class="font-mono text-[11px] font-semibold uppercase tracking-wide text-[#9a9ca3]">Sobre</h3>
+        <div class="cfg-cell-tr">
+          <div class="pb-2 border-b border-[#34363b]">
+            <h3 class="text-xs font-bold font-mono uppercase tracking-wide text-[#9a9ca3]">Dispositivo CYD</h3>
+          </div>
+          <div class="py-0.5 divide-y divide-dashed divide-[#34363b]">
+            <div class="flex items-center justify-between py-2.5">
+              <div><div class="text-sm font-semibold text-[#e9eaed]">Relógio na tela</div><div class="font-mono text-[10.5px] text-[#6c6e74] uppercase tracking-wide">Título vira HH:MM com a bridge ativa</div></div>
+              <select id="cfg-select-clock" onchange="cfgSetClock(this.value)" class="bg-[#0e0f11] border border-[#4a4c52] text-[#e9eaed] font-mono text-[11.5px] font-medium px-2.5 py-1.5 rounded-md">
+                <option value="off">Desligado</option><option value="24">24 horas</option><option value="12">12 horas</option>
+              </select>
             </div>
-            <div class="px-4 py-3 flex flex-col gap-2">
-              <div class="flex justify-between text-[11.5px] text-[#6c6e74]"><span>App</span><b class="font-mono text-[#e9eaed]">TokenDeck Studio</b></div>
-              <div class="flex justify-between text-[11.5px] text-[#6c6e74]"><span>Bridge</span><b class="font-mono text-[#e9eaed]">usage_serial_bridge_windows.py</b></div>
-              <div class="flex justify-between text-[11.5px] text-[#6c6e74]"><span>Hardware</span><b class="font-mono text-[#e9eaed]">CYD 2.8" (ESP32-2432S028R)</b></div>
+            <div class="flex items-center justify-between py-2.5 gap-4">
+              <div class="flex-none"><div class="text-sm font-semibold text-[#e9eaed]">Brilho</div><div class="font-mono text-[10.5px] text-[#6c6e74] uppercase tracking-wide">Mesmo controle da barra de ferramentas</div></div>
+              <div class="flex items-center gap-2.5 flex-none">
+                <div class="w-16 h-1.5 term-track">
+                  <div id="cfg-brightness-bar" class="progress-bar-fill term-fill h-full bg-[#ffb454]" style="width: 80%;"></div>
+                </div>
+                <span id="cfg-brightness-readout" class="font-mono text-sm font-bold text-[#ffb454] w-10 text-right">80%</span>
+              </div>
             </div>
+          </div>
+          <p class="text-[10.5px] text-[#6c6e74] pt-1.5 border-t border-dashed border-[#34363b] mt-0.5">Este hardware (CYD 2.8") não tem alto-falante — não há som de aviso de reset de sessão.</p>
+        </div>
+
+        <div class="cfg-cell-br">
+          <div class="pb-2 border-b border-[#34363b] flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-[#9a9ca3]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            <h3 class="text-xs font-bold font-mono uppercase tracking-wide text-[#9a9ca3]">Sobre</h3>
+          </div>
+          <div class="py-2.5 flex flex-col gap-2">
+            <div class="flex justify-between text-[11.5px] text-[#6c6e74] uppercase tracking-wide"><span>App</span><b class="font-mono text-[#e9eaed] normal-case">TokenDeck Studio</b></div>
+            <div class="flex justify-between text-[11.5px] text-[#6c6e74] uppercase tracking-wide"><span>Bridge</span><b class="font-mono text-[#e9eaed] normal-case">usage_serial_bridge_windows.py</b></div>
+            <div class="flex justify-between text-[11.5px] text-[#6c6e74] uppercase tracking-wide"><span>Hardware</span><b class="font-mono text-[#e9eaed] normal-case">CYD 2.8" (ESP32-2432S028R)</b></div>
           </div>
         </div>
       </div>
@@ -783,13 +886,6 @@
   <!-- ================= PÁGINA: HISTÓRICO ================= -->
   <section id="page-historico" class="flex-1 w-full overflow-y-auto p-6" style="display:none;">
     <div class="max-w-5xl mx-auto flex flex-col gap-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="font-stencil text-lg font-bold uppercase tracking-wide text-[#e9eaed]">Histórico</h2>
-          <p class="text-xs text-[#6c6e74] mt-0.5">Uso ao longo do tempo por provedor · amostra a cada 5 min</p>
-        </div>
-      </div>
-
       <!-- Estado vazio: ainda sem amostras (bridge nunca rodou, ou é o primeiro dia) -->
       <div id="hist-empty" class="readout-track rounded-lg p-8 text-center" style="display:none;">
         <div class="font-mono text-[11px] uppercase tracking-wide text-[#6c6e74]">Ainda coletando dados</div>
@@ -797,26 +893,71 @@
       </div>
 
       <div id="hist-data" style="display:none;">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div class="readout-track rounded-lg p-3.5">
+        <!-- Leituras do período: uma linha só, divisores verticais em vez de 4 cards soltos -->
+        <div class="grid grid-cols-2 md:grid-cols-4 divide-y divide-x-0 md:divide-y-0 md:divide-x divide-[#26272b]">
+          <div class="pb-3 md:pb-0 md:px-4 md:first:pl-0">
             <div class="font-mono text-[9.5px] uppercase tracking-wide text-[#6c6e74]">Pico do período</div>
             <div id="hist-peak-pct" class="font-mono text-xl font-bold text-[#ffb454] mt-1">--</div>
             <div id="hist-peak-sub" class="text-[10.5px] text-[#6c6e74] mt-1">--</div>
           </div>
-          <div class="readout-track rounded-lg p-3.5">
+          <div class="pt-3 pb-3 md:pt-0 md:pb-0 md:px-4">
             <div class="font-mono text-[9.5px] uppercase tracking-wide text-[#6c6e74]">Média diária</div>
             <div id="hist-avg-pct" class="font-mono text-xl font-bold text-[#ffb454] mt-1">--</div>
             <div class="text-[10.5px] text-[#6c6e74] mt-1">janela de 5h, todos provedores</div>
           </div>
-          <div class="readout-track rounded-lg p-3.5">
+          <div class="pt-3 pb-3 md:pt-0 md:pb-0 md:px-4">
             <div class="font-mono text-[9.5px] uppercase tracking-wide text-[#6c6e74]">Resets detectados</div>
             <div id="hist-resets" class="font-mono text-xl font-bold text-[#ffb454] mt-1">--</div>
             <div class="text-[10.5px] text-[#6c6e74] mt-1">queda &gt;40pp entre amostras</div>
           </div>
-          <div class="readout-track rounded-lg p-3.5">
+          <div class="pt-3 md:pt-0 md:px-4 md:last:pr-0">
             <div class="font-mono text-[9.5px] uppercase tracking-wide text-[#6c6e74]">Amostras</div>
             <div id="hist-samples" class="font-mono text-xl font-bold text-[#ffb454] mt-1">--</div>
             <div class="text-[10.5px] text-[#6c6e74] mt-1">últimos 7 dias</div>
+          </div>
+        </div>
+
+        <!-- Pico por provedor: lista com linhas tracejadas, igual à lista de provedores do Config -->
+        <div id="hist-provider-rows" class="divide-y divide-dashed divide-[#34363b] mt-4 pt-1">
+          <div class="flex items-center gap-3 py-2.5" data-hist-provider="claude">
+            <svg class="w-4 h-4 flex-none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4.709 15.955l4.72-2.647.08-.23-.08-.128H9.2l-.79-.048-2.698-.073-2.339-.097-2.266-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.145-.103.019-.073-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V9.01l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.485-1.215.62-1.64-.389-3.829-.91-1.312-.329h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.086-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z" fill="#D97757"/></svg>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline justify-between gap-2">
+                <span class="text-[11.5px] font-semibold text-[#e9eaed]">Claude</span>
+                <span class="hist-provider-peak font-mono text-[13px] font-bold text-[#ffb454]">--</span>
+              </div>
+              <div class="w-full h-1.5 term-track mt-1.5"><div class="hist-provider-bar progress-bar-fill term-fill h-full bg-[#ffb454]" style="width:0%;"></div></div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 py-2.5" data-hist-provider="codex">
+            <svg class="w-4 h-4 flex-none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#e9eaed" fill-rule="evenodd" d="M9.205 8.658v-2.26c0-.19.072-.333.238-.428l4.543-2.616c.619-.357 1.356-.523 2.117-.523 2.854 0 4.662 2.212 4.662 4.566 0 .167 0 .357-.024.547l-4.71-2.759a.797.797 0 00-.856 0l-5.97 3.473zm10.609 8.8V12.06c0-.333-.143-.57-.429-.737l-5.97-3.473 1.95-1.118a.433.433 0 01.476 0l4.543 2.617c1.309.76 2.189 2.378 2.189 3.948 0 1.808-1.07 3.473-2.76 4.163zM7.802 12.703l-1.95-1.142c-.167-.095-.239-.238-.239-.428V5.899c0-2.545 1.95-4.472 4.591-4.472 1 0 1.927.333 2.712.928L8.23 5.067c-.285.166-.428.404-.428.737v6.898zM12 15.128l-2.795-1.57v-3.33L12 8.658l2.795 1.57v3.33L12 15.128zm1.796 7.23c-1 0-1.927-.332-2.712-.927l4.686-2.712c.285-.166.428-.404.428-.737v-6.898l1.974 1.142c.167.095.238.238.238.428v5.233c0 2.545-1.974 4.472-4.614 4.472zm-5.637-5.303l-4.544-2.617c-1.308-.761-2.188-2.378-2.188-3.948A4.482 4.482 0 014.21 6.327v5.423c0 .333.143.571.428.738l5.947 3.449-1.95 1.118a.432.432 0 01-.476 0zm-.262 3.9c-2.688 0-4.662-2.021-4.662-4.519 0-.19.024-.38.047-.57l4.686 2.71c.286.167.571.167.856 0l5.97-3.448v2.26c0 .19-.07.333-.237.428l-4.543 2.616c-.619.357-1.356.523-2.117.523zm5.899 2.83a5.947 5.947 0 005.827-4.756C22.287 18.339 24 15.84 24 13.296c0-1.665-.713-3.282-1.998-4.448.119-.5.19-.999.19-1.498 0-3.401-2.759-5.947-5.946-5.947-.642 0-1.26.095-1.88.31A5.962 5.962 0 0010.205 0a5.947 5.947 0 00-5.827 4.757C1.713 5.447 0 7.945 0 10.49c0 1.666.713 3.283 1.998 4.448-.119.5-.19 1-.19 1.499 0 3.401 2.759 5.946 5.946 5.946.642 0 1.26-.095 1.88-.309a5.96 5.96 0 004.162 1.713z"/></svg>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline justify-between gap-2">
+                <span class="text-[11.5px] font-semibold text-[#e9eaed]">Codex</span>
+                <span class="hist-provider-peak font-mono text-[13px] font-bold text-[#5fb391]">--</span>
+              </div>
+              <div class="w-full h-1.5 term-track mt-1.5"><div class="hist-provider-bar progress-bar-fill term-fill h-full bg-[#5fb391]" style="width:0%;"></div></div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 py-2.5" data-hist-provider="gemini">
+            <svg class="w-4 h-4 flex-none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="#3186FF"/>
+              <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="url(#histGeminiA)"/>
+              <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="url(#histGeminiB)"/>
+              <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="url(#histGeminiC)"/>
+              <defs>
+                <linearGradient gradientUnits="userSpaceOnUse" id="histGeminiA" x1="7" x2="11" y1="15.5" y2="12"><stop stop-color="#08B962"/><stop offset="1" stop-color="#08B962" stop-opacity="0"/></linearGradient>
+                <linearGradient gradientUnits="userSpaceOnUse" id="histGeminiB" x1="8" x2="11.5" y1="5.5" y2="11"><stop stop-color="#F94543"/><stop offset="1" stop-color="#F94543" stop-opacity="0"/></linearGradient>
+                <linearGradient gradientUnits="userSpaceOnUse" id="histGeminiC" x1="3.5" x2="17.5" y1="13.5" y2="12"><stop stop-color="#FABC12"/><stop offset=".46" stop-color="#FABC12" stop-opacity="0"/></linearGradient>
+              </defs>
+            </svg>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline justify-between gap-2">
+                <span class="text-[11.5px] font-semibold text-[#e9eaed]">Gemini</span>
+                <span class="hist-provider-peak font-mono text-[13px] font-bold text-[#ab8ecf]">--</span>
+              </div>
+              <div class="w-full h-1.5 term-track mt-1.5"><div class="hist-provider-bar progress-bar-fill term-fill h-full bg-[#ab8ecf]" style="width:0%;"></div></div>
+            </div>
           </div>
         </div>
 
@@ -832,7 +973,7 @@
               <line x1="40" y1="122.5" x2="840" y2="122.5"/><line x1="40" y1="85" x2="840" y2="85"/>
               <line x1="40" y1="47.5" x2="840" y2="47.5"/><line x1="40" y1="10" x2="840" y2="10"/>
             </g>
-            <g fill="#6c6e74" font-size="10" font-family="IBM Plex Mono, monospace">
+            <g fill="#6c6e74" font-size="10" font-family="DM Mono, monospace">
               <text x="30" y="163" text-anchor="end">0</text><text x="30" y="126" text-anchor="end">25</text>
               <text x="30" y="88" text-anchor="end">50</text><text x="30" y="51" text-anchor="end">75</text><text x="30" y="14" text-anchor="end">100</text>
             </g>
@@ -842,23 +983,24 @@
           </svg>
           <div class="flex items-center justify-between mt-3">
             <div class="flex gap-4">
-              <span class="flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-wide text-[#9a9ca3]"><i class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#ffb454;"></i>Claude</span>
-              <span class="flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-wide text-[#9a9ca3]"><i class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#5fb391;"></i>Codex</span>
-              <span class="flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-wide text-[#9a9ca3]"><i class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#ab8ecf;"></i>Gemini</span>
+              <span class="flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-wide text-[#9a9ca3]"><span class="lamp-dot lit-phosphor"></span>Claude</span>
+              <span class="flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-wide text-[#9a9ca3]"><span class="lamp-dot lit-teal"></span>Codex</span>
+              <span class="flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-wide text-[#9a9ca3]"><span class="lamp-dot lit-violet"></span>Gemini</span>
             </div>
             <span id="hist-chart-note" class="text-[10.5px] text-[#6c6e74]" style="display:none;">o traço aparece a partir do 2º dia de coleta</span>
           </div>
         </div>
 
         <div class="bg-[#1f2024] border border-[#34363b] rounded-lg mt-4">
-          <div class="px-4 py-3 border-b border-[#34363b]">
+          <div class="px-4 py-3 border-b border-[#34363b] flex items-center justify-between">
             <h3 class="font-mono text-[11px] font-semibold uppercase tracking-wide text-[#9a9ca3]">Resumo diário</h3>
+            <span class="font-mono text-[9.5px] uppercase tracking-wide text-[#6c6e74]">provedor de pico por dia</span>
           </div>
-          <div class="px-4 py-2">
-            <table class="w-full text-[11.5px]">
+          <div class="px-4 py-1">
+            <table class="w-full text-[11.5px] border-collapse">
               <thead>
                 <tr class="text-left font-mono text-[9.5px] uppercase tracking-wide text-[#6c6e74]">
-                  <th class="pb-2">Dia</th><th class="pb-2">Pico</th><th class="pb-2 text-right">Média</th><th class="pb-2 text-right">Máximo</th>
+                  <th class="py-2">Dia</th><th class="py-2">Pico</th><th class="py-2 text-right">Média</th><th class="py-2 text-right">Máximo</th>
                 </tr>
               </thead>
               <tbody id="hist-table-body" class="text-[#9a9ca3]"></tbody>
@@ -871,7 +1013,60 @@
 
   <!-- ================= PÁGINA: SETUP (ASSISTENTE) ================= -->
   <section id="page-setup" class="flex-1 w-full overflow-y-auto p-6" style="display:none;">
-    <div class="max-w-3xl mx-auto flex flex-col gap-1">
+    <div class="max-w-5xl mx-auto flex flex-col gap-1">
+
+      <!-- Apresentação: hub central (logo TokenDeck) ligado às IAs monitoradas e ao CYD -->
+      <div class="relative rounded-lg overflow-hidden mb-6" style="aspect-ratio: 480 / 220;">
+        <svg class="absolute inset-0 w-full h-full" viewBox="0 0 480 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path class="hub-line-base" d="M 240 110 V 67 Q 240 53 226 53 H 77"/>
+          <path class="hub-line-flow" stroke="#ffb454" d="M 240 110 V 67 Q 240 53 226 53 H 77"/>
+          <path class="hub-line-base" d="M 240 110 V 49 Q 240 35 254 35 H 394"/>
+          <path class="hub-line-flow" stroke="#5fb391" d="M 240 110 V 49 Q 240 35 254 35 H 394" style="animation-delay:-1.1s;"/>
+          <path class="hub-line-base" d="M 240 110 V 166 Q 240 180 226 180 H 115"/>
+          <path class="hub-line-flow" stroke="#ab8ecf" d="M 240 110 V 166 Q 240 180 226 180 H 115" style="animation-delay:-2.1s;"/>
+          <path class="hub-line-base" d="M 240 110 V 149 Q 240 163 254 163 H 374"/>
+          <path class="hub-line-flow" stroke="#7f8890" d="M 240 110 V 149 Q 240 163 254 163 H 374" style="animation-delay:-0.5s;"/>
+        </svg>
+
+        <!-- Nó central: logo do projeto -->
+        <div class="absolute z-10 flex items-center justify-center hub-node rounded-xl p-2" style="left:50%; top:50%; transform:translate(-50%,-50%);">
+          <span class="hub-core-ring absolute inset-0 rounded-xl border border-[#ffb454]/40"></span>
+          <img src="assets/tokendeck-logo.png" alt="TokenDeck" class="w-20 h-20 object-contain relative" />
+        </div>
+
+        <!-- Claude — canto superior esquerdo -->
+        <div class="absolute z-10 flex items-center justify-center hub-node rounded-lg w-11 h-11" style="left:16%; top:24%; transform:translate(-50%,-50%);">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4.709 15.955l4.72-2.647.08-.23-.08-.128H9.2l-.79-.048-2.698-.073-2.339-.097-2.266-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.145-.103.019-.073-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V9.01l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.485-1.215.62-1.64-.389-3.829-.91-1.312-.329h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.086-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z" fill="#D97757"/></svg>
+        </div>
+
+        <!-- Codex — canto superior direito -->
+        <div class="absolute z-10 flex items-center justify-center hub-node rounded-lg w-11 h-11" style="left:82%; top:16%; transform:translate(-50%,-50%);">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#e9eaed" fill-rule="evenodd" d="M9.205 8.658v-2.26c0-.19.072-.333.238-.428l4.543-2.616c.619-.357 1.356-.523 2.117-.523 2.854 0 4.662 2.212 4.662 4.566 0 .167 0 .357-.024.547l-4.71-2.759a.797.797 0 00-.856 0l-5.97 3.473zm10.609 8.8V12.06c0-.333-.143-.57-.429-.737l-5.97-3.473 1.95-1.118a.433.433 0 01.476 0l4.543 2.617c1.309.76 2.189 2.378 2.189 3.948 0 1.808-1.07 3.473-2.76 4.163zM7.802 12.703l-1.95-1.142c-.167-.095-.239-.238-.239-.428V5.899c0-2.545 1.95-4.472 4.591-4.472 1 0 1.927.333 2.712.928L8.23 5.067c-.285.166-.428.404-.428.737v6.898zM12 15.128l-2.795-1.57v-3.33L12 8.658l2.795 1.57v3.33L12 15.128zm1.796 7.23c-1 0-1.927-.332-2.712-.927l4.686-2.712c.285-.166.428-.404.428-.737v-6.898l1.974 1.142c.167.095.238.238.238.428v5.233c0 2.545-1.974 4.472-4.614 4.472zm-5.637-5.303l-4.544-2.617c-1.308-.761-2.188-2.378-2.188-3.948A4.482 4.482 0 014.21 6.327v5.423c0 .333.143.571.428.738l5.947 3.449-1.95 1.118a.432.432 0 01-.476 0zm-.262 3.9c-2.688 0-4.662-2.021-4.662-4.519 0-.19.024-.38.047-.57l4.686 2.71c.286.167.571.167.856 0l5.97-3.448v2.26c0 .19-.07.333-.237.428l-4.543 2.616c-.619.357-1.356.523-2.117.523zm5.899 2.83a5.947 5.947 0 005.827-4.756C22.287 18.339 24 15.84 24 13.296c0-1.665-.713-3.282-1.998-4.448.119-.5.19-.999.19-1.498 0-3.401-2.759-5.947-5.946-5.947-.642 0-1.26.095-1.88.31A5.962 5.962 0 0010.205 0a5.947 5.947 0 00-5.827 4.757C1.713 5.447 0 7.945 0 10.49c0 1.666.713 3.283 1.998 4.448-.119.5-.19 1-.19 1.499 0 3.401 2.759 5.946 5.946 5.946.642 0 1.26-.095 1.88-.309a5.96 5.96 0 004.162 1.713z"/></svg>
+        </div>
+
+        <!-- Gemini — canto inferior esquerdo -->
+        <div class="absolute z-10 flex items-center justify-center hub-node rounded-lg w-11 h-11" style="left:24%; top:82%; transform:translate(-50%,-50%);">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="#3186FF"/>
+            <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="url(#hubGeminiA)"/>
+            <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="url(#hubGeminiB)"/>
+            <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="url(#hubGeminiC)"/>
+            <defs>
+              <linearGradient gradientUnits="userSpaceOnUse" id="hubGeminiA" x1="7" x2="11" y1="15.5" y2="12"><stop stop-color="#08B962"/><stop offset="1" stop-color="#08B962" stop-opacity="0"/></linearGradient>
+              <linearGradient gradientUnits="userSpaceOnUse" id="hubGeminiB" x1="8" x2="11.5" y1="5.5" y2="11"><stop stop-color="#F94543"/><stop offset="1" stop-color="#F94543" stop-opacity="0"/></linearGradient>
+              <linearGradient gradientUnits="userSpaceOnUse" id="hubGeminiC" x1="3.5" x2="17.5" y1="13.5" y2="12"><stop stop-color="#FABC12"/><stop offset=".46" stop-color="#FABC12" stop-opacity="0"/></linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        <!-- CYD / ESP32 — canto inferior direito -->
+        <div class="absolute z-10 flex items-center justify-center hub-node rounded-lg w-11 h-11 text-[#9a9ca3]" style="left:78%; top:74%; transform:translate(-50%,-50%);">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+        </div>
+      </div>
+
+      <p class="text-[13px] text-[#9a9ca3] leading-relaxed text-center max-w-2xl mx-auto mb-6">O TokenDeck lê o consumo de Claude, Codex e Gemini direto do seu computador e envia pela USB para a tela CYD — sem nuvem, sem servidor, só a bridge local.</p>
+
       <div class="flex items-center justify-between mb-4">
         <div>
           <h2 class="font-stencil text-lg font-bold uppercase tracking-wide text-[#e9eaed]">Assistente de configuração</h2>
@@ -879,73 +1074,91 @@
         </div>
       </div>
 
-      <div class="step-row flex items-center mb-6">
-        <div class="step done flex items-center gap-2 flex-1"><div class="step-lamp">✓</div><span class="font-mono text-[10.5px] uppercase tracking-wide text-[#e9eaed]">Parear placa</span></div>
-        <div class="trace"></div>
-        <div class="step active flex items-center gap-2 flex-1" id="setup-step-marker-2"><div class="step-lamp">2</div><span class="font-mono text-[10.5px] uppercase tracking-wide text-[#e9eaed]">Provedores</span></div>
-        <div class="trace"></div>
-        <div class="step flex items-center gap-2 flex-1" id="setup-step-marker-3"><div class="step-lamp">3</div><span class="font-mono text-[10.5px] uppercase tracking-wide text-[#6c6e74]">Autenticar</span></div>
-        <div class="trace"></div>
-        <div class="step flex items-center gap-2 flex-1" id="setup-step-marker-4"><div class="step-lamp">4</div><span class="font-mono text-[10.5px] uppercase tracking-wide text-[#6c6e74]">Pronto</span></div>
-      </div>
+      <div class="bg-[#1f2024] border border-[#34363b] rounded-lg p-5 w-full">
+        <div class="step-row" style="display:grid; grid-template-columns: 24px 1fr 24px 1fr 24px 1fr 24px; align-items:center;">
+          <div class="step done" id="setup-step-marker-1"><div class="step-lamp" id="setup-step-lamp-1" data-step-num="1">✓</div></div>
+          <div class="trace done" id="setup-step-trace-1"></div>
+          <div class="step active" id="setup-step-marker-2"><div class="step-lamp" id="setup-step-lamp-2" data-step-num="2">2</div></div>
+          <div class="trace" id="setup-step-trace-2"></div>
+          <div class="step" id="setup-step-marker-3"><div class="step-lamp" id="setup-step-lamp-3" data-step-num="3">3</div></div>
+          <div class="trace" id="setup-step-trace-3"></div>
+          <div class="step" id="setup-step-marker-4"><div class="step-lamp" id="setup-step-lamp-4" data-step-num="4">4</div></div>
+        </div>
+        <div class="step-labels-row mb-6" style="display:grid; grid-template-columns: 24px 1fr 24px 1fr 24px 1fr 24px; margin-top:8px;">
+          <span class="step-label on" style="grid-column:1;">Parear placa</span>
+          <span class="step-label on" id="setup-step-label-2" style="grid-column:3;">Provedores</span>
+          <span class="step-label" id="setup-step-label-3" style="grid-column:5;">Autenticar</span>
+          <span class="step-label" id="setup-step-label-4" style="grid-column:7;">Pronto</span>
+        </div>
 
-      <!-- Step 2 -->
-      <div id="setup-panel-2" class="flex flex-col gap-3">
-        <p class="text-[13px] text-[#9a9ca3] leading-relaxed mb-1">A bridge lê o uso de cada provedor e reveza os cards na tela do CYD. Dá para mudar isso depois em Config → Provedores.</p>
-        <div class="bg-[#1f2024] border border-[#4a4c52] rounded-lg px-4 py-3 flex items-center justify-between">
-          <div><div class="text-sm font-semibold text-[#e9eaed]">Claude Code</div><div class="font-mono text-[10.5px] text-[#6c6e74]">sessão detectada automaticamente</div></div>
-          <div id="setup-toggle-claude" class="rocker on phosphor" onclick="cfgToggleProvider('claude')"><i></i></div>
+        <!-- Step 2 -->
+        <div id="setup-panel-2" class="flex flex-col gap-3">
+          <p class="text-[13px] text-[#9a9ca3] leading-relaxed mb-1">A bridge lê o uso de cada provedor e reveza os cards na tela do CYD. Dá para mudar isso depois em Config → Provedores.</p>
+          <div class="divide-y divide-dashed divide-[#34363b] border-y border-[#34363b]">
+            <div class="flex items-center justify-between py-3">
+              <div class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 flex-none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4.709 15.955l4.72-2.647.08-.23-.08-.128H9.2l-.79-.048-2.698-.073-2.339-.097-2.266-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.145-.103.019-.073-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V9.01l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.485-1.215.62-1.64-.389-3.829-.91-1.312-.329h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.086-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z" fill="#D97757"/></svg>
+                <div><div class="text-sm font-semibold text-[#e9eaed]">Claude Code</div><div class="font-mono text-[10.5px] text-[#6c6e74] uppercase tracking-wide">Sessão detectada automaticamente</div></div>
+              </div>
+              <div id="setup-toggle-claude" class="rocker on phosphor" onclick="cfgToggleProvider('claude')"><i></i></div>
+            </div>
+            <div class="flex items-center justify-between py-3">
+              <div class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 flex-none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#e9eaed" fill-rule="evenodd" d="M9.205 8.658v-2.26c0-.19.072-.333.238-.428l4.543-2.616c.619-.357 1.356-.523 2.117-.523 2.854 0 4.662 2.212 4.662 4.566 0 .167 0 .357-.024.547l-4.71-2.759a.797.797 0 00-.856 0l-5.97 3.473zm10.609 8.8V12.06c0-.333-.143-.57-.429-.737l-5.97-3.473 1.95-1.118a.433.433 0 01.476 0l4.543 2.617c1.309.76 2.189 2.378 2.189 3.948 0 1.808-1.07 3.473-2.76 4.163zM7.802 12.703l-1.95-1.142c-.167-.095-.239-.238-.239-.428V5.899c0-2.545 1.95-4.472 4.591-4.472 1 0 1.927.333 2.712.928L8.23 5.067c-.285.166-.428.404-.428.737v6.898zM12 15.128l-2.795-1.57v-3.33L12 8.658l2.795 1.57v3.33L12 15.128zm1.796 7.23c-1 0-1.927-.332-2.712-.927l4.686-2.712c.285-.166.428-.404.428-.737v-6.898l1.974 1.142c.167.095.238.238.238.428v5.233c0 2.545-1.974 4.472-4.614 4.472zm-5.637-5.303l-4.544-2.617c-1.308-.761-2.188-2.378-2.188-3.948A4.482 4.482 0 014.21 6.327v5.423c0 .333.143.571.428.738l5.947 3.449-1.95 1.118a.432.432 0 01-.476 0zm-.262 3.9c-2.688 0-4.662-2.021-4.662-4.519 0-.19.024-.38.047-.57l4.686 2.71c.286.167.571.167.856 0l5.97-3.448v2.26c0 .19-.07.333-.237.428l-4.543 2.616c-.619.357-1.356.523-2.117.523zm5.899 2.83a5.947 5.947 0 005.827-4.756C22.287 18.339 24 15.84 24 13.296c0-1.665-.713-3.282-1.998-4.448.119-.5.19-.999.19-1.498 0-3.401-2.759-5.947-5.946-5.947-.642 0-1.26.095-1.88.31A5.962 5.962 0 0010.205 0a5.947 5.947 0 00-5.827 4.757C1.713 5.447 0 7.945 0 10.49c0 1.666.713 3.283 1.998 4.448-.119.5-.19 1-.19 1.499 0 3.401 2.759 5.946 5.946 5.946.642 0 1.26-.095 1.88-.309a5.96 5.96 0 004.162 1.713z"/></svg>
+                <div><div class="text-sm font-semibold text-[#e9eaed]">Codex</div><div class="font-mono text-[10.5px] text-[#6c6e74] uppercase tracking-wide">Sessão detectada automaticamente</div></div>
+              </div>
+              <div id="setup-toggle-codex" class="rocker on teal" onclick="cfgToggleProvider('codex')"><i></i></div>
+            </div>
+            <div class="flex items-center justify-between py-3">
+              <div class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 flex-none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="#3186FF"/>
+                  <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="url(#setupGeminiA)"/>
+                  <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="url(#setupGeminiB)"/>
+                  <path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="url(#setupGeminiC)"/>
+                  <defs>
+                    <linearGradient gradientUnits="userSpaceOnUse" id="setupGeminiA" x1="7" x2="11" y1="15.5" y2="12"><stop stop-color="#08B962"/><stop offset="1" stop-color="#08B962" stop-opacity="0"/></linearGradient>
+                    <linearGradient gradientUnits="userSpaceOnUse" id="setupGeminiB" x1="8" x2="11.5" y1="5.5" y2="11"><stop stop-color="#F94543"/><stop offset="1" stop-color="#F94543" stop-opacity="0"/></linearGradient>
+                    <linearGradient gradientUnits="userSpaceOnUse" id="setupGeminiC" x1="3.5" x2="17.5" y1="13.5" y2="12"><stop stop-color="#FABC12"/><stop offset=".46" stop-color="#FABC12" stop-opacity="0"/></linearGradient>
+                  </defs>
+                </svg>
+                <div><div class="text-sm font-semibold text-[#e9eaed]">Gemini</div><div class="font-mono text-[10.5px] text-[#6c6e74] uppercase tracking-wide">Precisa de login no Antigravity</div></div>
+              </div>
+              <div id="setup-toggle-gemini" class="rocker on violet" onclick="cfgToggleProvider('gemini')"><i></i></div>
+            </div>
+          </div>
         </div>
-        <div class="bg-[#1f2024] border border-[#4a4c52] rounded-lg px-4 py-3 flex items-center justify-between">
-          <div><div class="text-sm font-semibold text-[#e9eaed]">Codex</div><div class="font-mono text-[10.5px] text-[#6c6e74]">sessão detectada automaticamente</div></div>
-          <div id="setup-toggle-codex" class="rocker on teal" onclick="cfgToggleProvider('codex')"><i></i></div>
-        </div>
-        <div class="bg-[#1f2024] border border-[#34363b] rounded-lg px-4 py-3 flex items-center justify-between">
-          <div><div class="text-sm font-semibold text-[#e9eaed]">Gemini</div><div class="font-mono text-[10.5px] text-[#6c6e74]">precisa de login no Antigravity</div></div>
-          <div id="setup-toggle-gemini" class="rocker on violet" onclick="cfgToggleProvider('gemini')"><i></i></div>
-        </div>
-      </div>
 
-      <!-- Step 3 -->
-      <div id="setup-panel-3" class="flex-col gap-3" style="display:none;">
-        <p class="text-[13px] text-[#9a9ca3] leading-relaxed">Nenhum login extra é necessário aqui — o TokenDeck lê as credenciais já salvas localmente por cada CLI:</p>
-        <div class="bg-[#1f2024] border border-[#34363b] rounded-lg px-4 py-3 font-mono text-[11.5px] text-[#9a9ca3] flex flex-col gap-1.5">
-          <div>· Claude Code → <span class="text-[#e9eaed]">~/.claude/.credentials.json</span></div>
-          <div>· Codex → sessão local da CLI oficial</div>
-          <div>· Gemini → login no Antigravity</div>
+        <!-- Step 3 -->
+        <div id="setup-panel-3" class="flex-col gap-3" style="display:none;">
+          <p class="text-[13px] text-[#9a9ca3] leading-relaxed">Nenhum login extra é necessário aqui — o TokenDeck lê as credenciais já salvas localmente por cada CLI:</p>
+          <div class="readout-track rounded-lg px-4 py-3 font-mono text-[11.5px] text-[#9a9ca3] flex flex-col gap-2">
+            <div class="flex items-center justify-between"><span>Claude Code</span><span class="text-[#e9eaed]">~/.claude/.credentials.json</span></div>
+            <div class="flex items-center justify-between"><span>Codex</span><span class="text-[#e9eaed]">sessão local da CLI oficial</span></div>
+            <div class="flex items-center justify-between"><span>Gemini</span><span class="text-[#e9eaed]">login no Antigravity</span></div>
+          </div>
         </div>
-      </div>
 
-      <!-- Step 4 -->
-      <div id="setup-panel-4" class="flex-col items-center text-center gap-2 py-6" style="display:none;">
-        <div class="step-lamp mx-auto" style="width:44px;height:44px;font-size:18px;background:#5fb391;color:#0e1310;border-color:#5fb391;">✓</div>
-        <h3 class="font-stencil text-base font-bold uppercase tracking-wide text-[#e9eaed] mt-2">Tudo pronto</h3>
-        <p class="text-[13px] text-[#9a9ca3] max-w-sm mx-auto">O painel já está monitorando os provedores selecionados. Você pode revisitar este assistente a qualquer momento pela aba Setup.</p>
-      </div>
-
-      <div class="flex items-center justify-between mt-6 pt-4 border-t border-[#26272b]">
-        <button id="setup-btn-back" class="px-3.5 py-1.5 rounded-md text-xs font-bold font-mono uppercase tracking-wide bg-transparent text-[#6c6e74] border border-[#34363b] cursor-pointer" onclick="wizardBack()" style="visibility:hidden;">Voltar</button>
-        <div class="flex gap-1.5">
-          <span class="wizard-dot" style="width:6px;height:6px;border-radius:50%;background:#4a4c52;"></span>
-          <span class="wizard-dot on" style="width:16px;height:6px;border-radius:3px;background:#ffb454;"></span>
-          <span class="wizard-dot" style="width:6px;height:6px;border-radius:50%;background:#4a4c52;"></span>
-          <span class="wizard-dot" style="width:6px;height:6px;border-radius:50%;background:#4a4c52;"></span>
+        <!-- Step 4 -->
+        <div id="setup-panel-4" class="flex-col items-center text-center gap-2 py-6" style="display:none;">
+          <div class="step-lamp mx-auto" style="width:44px;height:44px;font-size:18px;background:#5fb391;color:#0e1310;border-color:#5fb391;">✓</div>
+          <h3 class="font-stencil text-base font-bold uppercase tracking-wide text-[#e9eaed] mt-2">Tudo pronto</h3>
+          <p class="text-[13px] text-[#9a9ca3] max-w-sm mx-auto">O painel já está monitorando os provedores selecionados. Você pode revisitar este assistente a qualquer momento pela aba Setup.</p>
         </div>
-        <button id="setup-btn-next" class="px-3.5 py-1.5 rounded-md text-xs font-bold font-mono uppercase tracking-wide bg-gradient-to-b from-[#2c2e33] to-[#202226] text-[#ffb454] border border-[#8a6a3a] cursor-pointer" onclick="wizardNext()">Continuar</button>
+
+        <div class="flex items-center justify-between mt-6 pt-4 border-t border-[#26272b]">
+          <button id="setup-btn-back" class="px-3.5 py-1.5 rounded-md text-xs font-bold font-mono uppercase tracking-wide bg-transparent text-[#6c6e74] border border-[#34363b] cursor-pointer" onclick="wizardBack()" style="visibility:hidden;">Voltar</button>
+          <div class="flex gap-1.5">
+            <span class="wizard-dot" style="width:6px;height:6px;border-radius:50%;background:#4a4c52;"></span>
+            <span class="wizard-dot on" style="width:16px;height:6px;border-radius:3px;background:#ffb454;"></span>
+            <span class="wizard-dot" style="width:6px;height:6px;border-radius:50%;background:#4a4c52;"></span>
+            <span class="wizard-dot" style="width:6px;height:6px;border-radius:50%;background:#4a4c52;"></span>
+          </div>
+          <button id="setup-btn-next" class="px-3.5 py-1.5 rounded-md text-xs font-bold font-mono uppercase tracking-wide bg-gradient-to-b from-[#2c2e33] to-[#202226] text-[#ffb454] border border-[#8a6a3a] cursor-pointer" onclick="wizardNext()">Continuar</button>
+        </div>
       </div>
     </div>
   </section>
-
-  <!-- ================= 4. FOOTER BAR ================= -->
-  <footer class="relative bg-[#16171a] border-t border-[#26272b] px-6 py-2.5 flex items-center justify-between text-xs font-mono text-[#9a9ca3]">
-    <div id="footer-sync" class="flex items-center gap-2">
-      <span class="lamp-dot lit-teal"></span>
-      Sincronizado via Bridge USB (a cada 5s)
-    </div>
-    <div class="text-[#6c6e74]">
-      Atalhos: [tokendeck-gui] | [tokendeck-server] | [tokendeck-record]
-    </div>
-  </footer>
 
   <!-- ================= JAVASCRIPT: GPU ANIMATION & BRIDGE ================= -->
   <script>
@@ -990,8 +1203,7 @@
       if (isModeEqual) {
         isModeEqual = false;
         document.getElementById('cards-grid').classList.remove('mode-equal');
-        document.getElementById('text-toggle-view').innerText = 'Manter 3 Iguais';
-        document.getElementById('toolbar-msg-text').innerText = 'Modo Foco Ativo: passe o mouse para expandir.';
+        document.getElementById('text-toggle-view').innerText = '3 Iguais';
       }
       setActiveCard(index);
     }
@@ -1017,26 +1229,22 @@
     function toggleViewMode() {
       const grid = document.getElementById('cards-grid');
       const textBtn = document.getElementById('text-toggle-view');
-      const msgText = document.getElementById('toolbar-msg-text');
 
       if (!isModeEqual) {
         isModeEqual = true;
         grid.classList.add('mode-equal');
         grid.style.gridTemplateColumns = "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)";
-        textBtn.innerText = 'Modo Foco (Hover)';
-        msgText.innerText = 'Modo Dividido: 3 abas abertas com tamanho uniforme (1:1:1).';
+        textBtn.innerText = 'Modo Foco';
       } else {
         isModeEqual = false;
         grid.classList.remove('mode-equal');
-        textBtn.innerText = 'Manter 3 Iguais';
-        msgText.innerText = 'Modo Foco Ativo: passe o mouse sobre qualquer card para expandir.';
+        textBtn.innerText = '3 Iguais';
         setActiveCard(activeIndex);
       }
     }
 
     async function toggleBridge() {
       if (window.pywebview && window.pywebview.api) {
-        document.getElementById('toolbar-msg-text').innerText = "Processando comando da Bridge...";
         await window.pywebview.api.toggle_bridge();
         refreshNow();
       }
@@ -1044,7 +1252,6 @@
 
     async function flashFirmware() {
       if (window.pywebview && window.pywebview.api) {
-        document.getElementById('toolbar-msg-text').innerText = "Liberando COM4 e gravando firmware na CYD...";
         await window.pywebview.api.flash_firmware();
       }
     }
@@ -1053,11 +1260,9 @@
       if (window.pywebview && window.pywebview.api) {
         const icon = document.getElementById('icon-refresh');
         if (icon) icon.classList.add('animate-spin');
-        document.getElementById('toolbar-msg-text').innerText = "Atualizando métricas...";
         const data = await window.pywebview.api.get_status();
         renderData(data);
         if (icon) icon.classList.remove('animate-spin');
-        document.getElementById('toolbar-msg-text').innerText = "Métricas atualizadas com sucesso!";
       }
     }
 
@@ -1069,10 +1274,10 @@
       const textSerial = document.getElementById('pill-serial-text');
       if (port) {
         textSerial.innerText = `USB ${port} Conectada`;
-        pillSerial.className = "px-3 py-1 rounded-md bg-[#1a2620] text-[#5fb391] border border-[#3d6b57] flex items-center gap-1.5";
+        pillSerial.className = "flex flex-col items-center gap-1 text-[#5fb391] w-[136px] flex-none";
       } else {
         textSerial.innerText = "USB Desconectado";
-        pillSerial.className = "px-3 py-1 rounded-md bg-[#1f2024] text-[#6c6e74] border border-[#34363b] flex items-center gap-1.5";
+        pillSerial.className = "flex flex-col items-center gap-1 text-[#6c6e74] w-[136px] flex-none";
       }
 
       const bridgeActive = data.bridge_active;
@@ -1083,15 +1288,15 @@
 
       if (bridgeActive) {
         pillBridge.querySelector('span').innerText = "Bridge Ativa";
-        pillBridge.className = "px-3 py-1 rounded-md bg-[#1a2620] text-[#5fb391] border border-[#3d6b57] flex items-center gap-1.5";
-        btnBridge.className = "px-3.5 py-1.5 rounded-md text-xs font-bold font-mono uppercase tracking-wide bg-[#5a2a20] hover:bg-[#6b3527] text-[#e9eaed] border border-[#7a3f2d] transition flex items-center gap-2 cursor-pointer";
-        textBridge.innerText = "Parar Bridge USB";
+        pillBridge.className = "flex flex-col items-center gap-1 text-[#5fb391] w-[104px] flex-none";
+        btnBridge.className = "px-2.5 py-1.5 rounded-md text-[10.5px] font-bold font-mono uppercase tracking-wide bg-transparent hover:bg-white/5 text-[#e0685f] transition flex items-center gap-1.5 cursor-pointer";
+        textBridge.innerText = "Parar Bridge";
         iconBridge.innerHTML = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="5" y="5" rx="2"/></svg>`;
       } else {
         pillBridge.querySelector('span').innerText = "Bridge Parada";
-        pillBridge.className = "px-3 py-1 rounded-md bg-[#1f2024] text-[#6c6e74] border border-[#34363b] flex items-center gap-1.5";
-        btnBridge.className = "px-3.5 py-1.5 rounded-md text-xs font-bold font-mono uppercase tracking-wide bg-[#1a2620] hover:bg-[#22301f] text-[#5fb391] border border-[#3d6b57] transition flex items-center gap-2 cursor-pointer";
-        textBridge.innerText = "Iniciar Bridge USB";
+        pillBridge.className = "flex flex-col items-center gap-1 text-[#6c6e74] w-[104px] flex-none";
+        btnBridge.className = "px-2.5 py-1.5 rounded-md text-[10.5px] font-bold font-mono uppercase tracking-wide bg-transparent hover:bg-white/5 text-[#5fb391] transition flex items-center gap-1.5 cursor-pointer";
+        textBridge.innerText = "Iniciar Bridge";
         iconBridge.innerHTML = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>`;
       }
 
@@ -1173,16 +1378,13 @@
         if (badge) badge.innerText = `${data.brightness}%`;
       }
 
-      document.getElementById('footer-sync').innerHTML = `
-        <span class="lamp-dot lit-teal"></span>
-        ${data.source_mode || 'Sincronizado via Bridge USB'} | ${new Date().toLocaleTimeString()}
-      `;
-
       // Espelha porta serial e brilho na página de Configurações (mesmos dados do Painel)
       const cfgPort = document.getElementById('cfg-port-readout');
       if (cfgPort) cfgPort.innerText = port ? `${port} conectada` : 'nenhuma porta detectada';
       const cfgBrightness = document.getElementById('cfg-brightness-readout');
       if (cfgBrightness && data.brightness !== undefined) cfgBrightness.innerText = `${data.brightness}%`;
+      const cfgBrightnessBar = document.getElementById('cfg-brightness-bar');
+      if (cfgBrightnessBar && data.brightness !== undefined) cfgBrightnessBar.style.width = `${data.brightness}%`;
 
       applyConfigToUI(data.config);
     }
@@ -1224,21 +1426,62 @@
     // ================= NAVEGAÇÃO ENTRE PÁGINAS =================
     function showPage(name) {
       const pages = ['painel', 'config', 'historico', 'setup'];
-      pages.forEach((p) => {
+      const current = pages.find((p) => {
         const el = document.getElementById(`page-${p}`);
-        if (el) el.style.display = (p === name) ? (p === 'painel' ? 'flex' : 'block') : 'none';
+        return el && el.style.display !== 'none';
       });
-      document.querySelectorAll('.nav-tabs a').forEach((a) => {
-        a.classList.toggle('on', a.dataset.page === name);
-      });
-      if (name === 'setup') wizardRender();
-      if (name === 'historico') loadHistory();
+
+      const swap = () => {
+        pages.forEach((p) => {
+          const el = document.getElementById(`page-${p}`);
+          if (!el) return;
+          if (p === name) {
+            el.classList.remove('page-fade-out');
+            el.style.display = (p === 'painel' ? 'flex' : 'block');
+            el.classList.remove('page-anim');
+            void el.offsetWidth; // reinicia a animação mesmo se a página já estava marcada antes
+            el.classList.add('page-anim');
+          } else {
+            el.style.display = 'none';
+            el.classList.remove('page-fade-out');
+          }
+        });
+        document.querySelectorAll('.nav-tabs a').forEach((a) => {
+          a.classList.toggle('on', a.dataset.page === name);
+        });
+        moveNavIndicator(name);
+        if (name === 'setup') wizardRender();
+        if (name === 'historico') loadHistory();
+      };
+
+      // A aba atual esmaece rapidamente antes da próxima entrar, para a troca
+      // parecer uma transição em vez de um corte seco entre as duas telas.
+      if (current && current !== name) {
+        const currentEl = document.getElementById(`page-${current}`);
+        currentEl.classList.add('page-fade-out');
+        setTimeout(swap, 120);
+      } else {
+        swap();
+      }
     }
+
+    function moveNavIndicator(name) {
+      const active = document.querySelector(`.nav-tabs a[data-page="${name}"]`);
+      const indicator = document.getElementById('nav-indicator');
+      if (!active || !indicator) return;
+      indicator.style.width = `${active.offsetWidth}px`;
+      indicator.style.transform = `translateX(${active.offsetLeft}px)`;
+    }
+    window.addEventListener('resize', () => {
+      const active = document.querySelector('.nav-tabs a.on');
+      if (active) moveNavIndicator(active.dataset.page);
+    });
 
     // ================= HISTÓRICO =================
     function labelProvider(p) {
       return { claude: 'Claude', codex: 'Codex', gemini: 'Gemini' }[p] || '--';
     }
+    const HIST_LAMP_CLASS = { claude: 'lit-phosphor', codex: 'lit-teal', gemini: 'lit-violet' };
 
     function buildPolyline(values, width, height, padLeft, padTop, padBottom) {
       const n = (values || []).length;
@@ -1252,9 +1495,38 @@
       }).join(' ');
     }
 
+    // Exemplo/mock: 7 dias fictícios usados só quando a página abre fora do
+    // app pywebview (ex.: pré-visualização no navegador durante o design),
+    // para a aba nunca renderizar vazia enquanto não há bridge real rodando.
+    function buildMockHistory() {
+      const days = [];
+      const series = { claude: [], codex: [], gemini: [] };
+      const today = new Date();
+      const curve = { claude: [22, 38, 51, 64, 47, 72, 58], codex: [15, 24, 33, 29, 41, 36, 52], gemini: [8, 12, 19, 27, 21, 33, 24] };
+      let resets = 0;
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(today); d.setDate(d.getDate() - (6 - i));
+        const date = d.toISOString().slice(5, 10).split('-').reverse().join('/');
+        const dayVals = { claude: curve.claude[i], codex: curve.codex[i], gemini: curve.gemini[i] };
+        const peakProvider = Object.keys(dayVals).reduce((a, b) => dayVals[a] >= dayVals[b] ? a : b);
+        const peakPct = dayVals[peakProvider];
+        const avgPct = Math.round((dayVals.claude + dayVals.codex + dayVals.gemini) / 3);
+        days.push({ date, peak_provider: peakProvider, avg_pct: avgPct, peak_pct: peakPct });
+        series.claude.push(dayVals.claude); series.codex.push(dayVals.codex); series.gemini.push(dayVals.gemini);
+        if (i > 0 && curve.claude[i] < curve.claude[i - 1] - 40) resets++;
+      }
+      return {
+        has_data: true,
+        days,
+        series,
+        stats: { peak_pct: 72, peak_provider: 'claude', peak_day: days[5].date, avg_daily: 34, resets: resets || 1, sample_count: 1932 },
+        _mock: true,
+      };
+    }
+
     async function loadHistory() {
-      if (!(window.pywebview && window.pywebview.api)) return;
-      const hist = await window.pywebview.api.get_history(7);
+      const live = window.pywebview && window.pywebview.api;
+      const hist = live ? await window.pywebview.api.get_history(7) : buildMockHistory();
       const emptyEl = document.getElementById('hist-empty');
       const dataEl = document.getElementById('hist-data');
       if (!hist || !hist.has_data) {
@@ -1280,14 +1552,28 @@
       const note = document.getElementById('hist-chart-note');
       if (note) note.style.display = (hist.days.length < 2) ? 'inline' : 'none';
 
+      // Pico por provedor na janela: maior amostra da série de cada um.
+      document.querySelectorAll('#hist-provider-rows [data-hist-provider]').forEach((row) => {
+        const p = row.dataset.histProvider;
+        const vals = hist.series[p] || [];
+        const peak = vals.length ? Math.max(...vals) : 0;
+        row.querySelector('.hist-provider-peak').innerText = `${peak}%`;
+        row.querySelector('.hist-provider-bar').style.width = `${Math.min(100, peak)}%`;
+      });
+
       const tbody = document.getElementById('hist-table-body');
       if (tbody) {
         tbody.innerHTML = hist.days.slice().reverse().map((d) => `
-          <tr>
+          <tr class="border-t border-[#26272b] hover:bg-white/[0.03] transition">
             <td class="py-2 font-mono text-[#e9eaed]">${d.date}</td>
-            <td class="py-2">${labelProvider(d.peak_provider)}</td>
+            <td class="py-2">
+              <span class="flex items-center gap-1.5">
+                <span class="lamp-dot ${HIST_LAMP_CLASS[d.peak_provider] || 'lit-dim'}"></span>
+                ${labelProvider(d.peak_provider)}
+              </span>
+            </td>
             <td class="py-2 text-right font-mono">${d.avg_pct}%</td>
-            <td class="py-2 text-right font-mono">${d.peak_pct}%</td>
+            <td class="py-2 text-right font-mono text-[#e9eaed] font-semibold">${d.peak_pct}%</td>
           </tr>
         `).join('');
       }
@@ -1296,18 +1582,52 @@
     // ================= SETUP: assistente de 4 passos (demonstração) =================
     let wizardStep = 2; // passo 1 (parear placa) já vem concluído
 
-    function wizardRender() {
+    function wizardRender(direction) {
+      const animClass = direction === 'back' ? 'step-anim-back' : 'step-anim-fwd';
       for (let s = 2; s <= 4; s++) {
         const marker = document.getElementById(`setup-step-marker-${s}`);
         const panel = document.getElementById(`setup-panel-${s}`);
+        const lamp = document.getElementById(`setup-step-lamp-${s}`);
+        const label = document.getElementById(`setup-step-label-${s}`);
+        const isDone = s < wizardStep;
         if (marker) {
           marker.classList.toggle('active', s === wizardStep);
-          marker.classList.toggle('done', s < wizardStep);
-          const label = marker.querySelector('span');
-          if (label) label.style.color = (s <= wizardStep) ? '#e9eaed' : '#6c6e74';
+          marker.classList.toggle('done', isDone);
         }
-        if (panel) panel.style.display = (s === wizardStep) ? 'flex' : 'none';
+        if (label) label.classList.toggle('on', s <= wizardStep);
+        if (lamp) {
+          // O número vira "✓" só no instante em que a etapa passa a "feito",
+          // com um pop de escala+giro — não a cada re-render.
+          const wasDone = lamp.dataset.wasDone === '1';
+          if (isDone && !wasDone) {
+            lamp.textContent = '✓';
+            lamp.classList.remove('check-pop');
+            void lamp.offsetWidth;
+            lamp.classList.add('check-pop');
+          } else if (!isDone) {
+            lamp.textContent = lamp.dataset.stepNum;
+            lamp.classList.remove('check-pop');
+          }
+          lamp.dataset.wasDone = isDone ? '1' : '0';
+        }
+        if (panel) {
+          const shouldShow = (s === wizardStep);
+          if (shouldShow) {
+            panel.style.display = 'flex';
+            if (direction) {
+              panel.classList.remove('step-anim-fwd', 'step-anim-back');
+              void panel.offsetWidth; // reinicia a animação a cada troca de etapa
+              panel.classList.add(animClass);
+            }
+          } else {
+            panel.style.display = 'none';
+          }
+        }
       }
+      // Traço 1 (após "Parear placa") está sempre feito; 2 e 3 acompanham o avanço do wizard.
+      document.getElementById('setup-step-trace-2').classList.toggle('done', wizardStep > 2);
+      document.getElementById('setup-step-trace-3').classList.toggle('done', wizardStep > 3);
+
       document.getElementById('setup-btn-back').style.visibility = (wizardStep > 2) ? 'visible' : 'hidden';
       const nextBtn = document.getElementById('setup-btn-next');
       nextBtn.innerText = (wizardStep >= 4) ? 'Ir para o Painel' : 'Continuar';
@@ -1329,13 +1649,13 @@
         return;
       }
       wizardStep += 1;
-      wizardRender();
+      wizardRender('fwd');
     }
 
     function wizardBack() {
       if (wizardStep <= 2) return;
       wizardStep -= 1;
-      wizardRender();
+      wizardRender('back');
     }
 
     // ================= CONTROLE DE BRILHO CYD =================
@@ -1375,6 +1695,8 @@
         lucide.createIcons();
       }
     });
+
+    moveNavIndicator('painel');
   </script>
 </body>
 </html>
