@@ -47,7 +47,7 @@ TokenDeck presents this telemetry through two synchronized environments:
         <img src="screenshots/cyd_esp32_hardware.png" alt="CYD 2.8 ESP32 Hardware Display Running" width="100%" />
       </td>
       <td align="center" width="55%">
-        <img src="screenshots/tokendeck_studio_gui.png" alt="TokenDeck Studio Desktop Dashboard" width="100%" />
+        <img src="screenshots/tokendeck_studio_gui.jpg" alt="TokenDeck Studio Desktop Dashboard" width="100%" />
       </td>
     </tr>
   </table>
