@@ -295,7 +295,9 @@
       transition: border-color .2s ease, box-shadow .25s ease;
     }
     .rocker i {
-      position:absolute; top:3px; left:3px; width:17px; height:17px; border-radius:50%; background:#45474d;
+      /* top:2px centers the 17px knob in the 21px content height (23px
+         border-box track minus the 1px border on each side): (21-17)/2 = 2. */
+      position:absolute; top:2px; left:3px; width:17px; height:17px; border-radius:50%; background:#45474d;
       transition: transform .25s cubic-bezier(0.16, 1, 0.3, 1), background .2s ease, box-shadow .25s ease; display:block;
     }
     /* translateX(19px): track content width is 42px (44px border-box minus the
@@ -1118,10 +1120,10 @@
           <div class="step" id="setup-step-marker-4"><div class="step-lamp" id="setup-step-lamp-4" data-step-num="4">4</div></div>
         </div>
         <div class="step-labels-row mb-6" style="display:grid; grid-template-columns: 24px 1fr 24px 1fr 24px 1fr 24px; margin-top:8px;">
-          <span class="step-label on" style="grid-column:1;">Parear placa</span>
+          <span class="step-label on" style="grid-column:1; justify-self:start;">Parear placa</span>
           <span class="step-label on" id="setup-step-label-2" style="grid-column:3;">Provedores</span>
           <span class="step-label" id="setup-step-label-3" style="grid-column:5;">Autenticar</span>
-          <span class="step-label" id="setup-step-label-4" style="grid-column:7;">Pronto</span>
+          <span class="step-label" id="setup-step-label-4" style="grid-column:7; justify-self:end;">Pronto</span>
         </div>
 
         <!-- Step 2 -->
