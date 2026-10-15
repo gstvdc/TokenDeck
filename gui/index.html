@@ -905,6 +905,24 @@
       </div>
 
       <div id="hist-data" style="display:none;">
+        <!-- Barra de ações: exportar o histórico bruto -->
+        <div class="flex items-center justify-end gap-2 mb-1">
+          <button id="btn-export-json" onclick="exportHistory('json')" class="px-2.5 py-1.5 rounded-md text-[10.5px] font-bold font-mono uppercase tracking-wide bg-transparent hover:bg-white/5 text-[#6c6e74] transition flex items-center gap-1.5 cursor-pointer">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            Exportar JSON
+          </button>
+          <button id="btn-export-csv" onclick="exportHistory('csv')" class="px-2.5 py-1.5 rounded-md text-[10.5px] font-bold font-mono uppercase tracking-wide bg-transparent hover:bg-white/5 text-[#6c6e74] transition flex items-center gap-1.5 cursor-pointer">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            Exportar CSV
+          </button>
+        </div>
+
+        <!-- Projeção de ritmo: quando cada provedor deve bater 100% do limite semanal -->
+        <div id="hist-burn-rate" class="readout-track rounded-lg p-4 mb-4" style="display:none;">
+          <div class="font-mono text-[9.5px] uppercase tracking-wide text-[#6c6e74] mb-2.5">Projeção de ritmo (limite semanal)</div>
+          <div id="hist-burn-rate-rows" class="flex flex-col gap-1.5"></div>
+        </div>
+
         <!-- Leituras do período: uma linha só, divisores verticais em vez de 4 cards soltos -->
         <div class="grid grid-cols-2 md:grid-cols-4 divide-y divide-x-0 md:divide-y-0 md:divide-x divide-[#26272b]">
           <div class="pb-3 md:pb-0 md:px-4 md:first:pl-0">
@@ -1566,8 +1584,71 @@
         days,
         series,
         stats: { peak_pct: 72, peak_provider: 'claude', peak_day: days[5].date, avg_daily: 34, resets: resets || 1, sample_count: 1932 },
+        burn_rate: mockBurnRate(),
         _mock: true,
       };
+    }
+
+    // Projeção de ritmo: hist.burn_rate[provider] vem do Python (get_history)
+    // já calculado a partir das amostras cruas desde o último reset semanal
+    // detectado. Mock local simples pro preview sem pywebview.
+    const BURN_RATE_LABEL = { claude: 'Claude', codex: 'Codex / GPT', gemini: 'Gemini' };
+    function mockBurnRate() {
+      return {
+        claude: { projected: true, days_to_100: 2.3, projected_date: 'Qui 23/10', rate_per_day: 18.4 },
+        codex: { projected: false, rate_per_day: 3.1 },
+        gemini: { projected: false, rate_per_day: -2.0 },
+      };
+    }
+
+    function renderBurnRate(burnRate) {
+      const box = document.getElementById('hist-burn-rate');
+      const rows = document.getElementById('hist-burn-rate-rows');
+      if (!box || !rows) return;
+      if (!burnRate || Object.keys(burnRate).length === 0) {
+        box.style.display = 'none';
+        return;
+      }
+      box.style.display = 'block';
+      rows.innerHTML = ['claude', 'codex', 'gemini'].map((p) => {
+        const info = burnRate[p];
+        const label = BURN_RATE_LABEL[p];
+        let text;
+        if (!info) {
+          text = `<span class="text-[#6c6e74]">sem dados suficientes ainda</span>`;
+        } else if (info.already_full) {
+          text = `<span class="text-[#e0685f] font-semibold">já no limite semanal</span>`;
+        } else if (info.projected) {
+          text = `no ritmo atual, bate 100% em <span class="text-[#e9eaed] font-semibold">~${info.days_to_100}d (${info.projected_date})</span>`;
+        } else {
+          text = `<span class="text-[#5fb391]">ritmo estável, sem previsão de esgotar</span>`;
+        }
+        return `<div class="flex items-baseline justify-between gap-3 text-[12px]">
+          <span class="text-[#9a9ca3]">${label}</span>
+          <span class="font-mono text-right">${text}</span>
+        </div>`;
+      }).join('');
+    }
+
+    async function exportHistory(fmt) {
+      const btn = document.getElementById(`btn-export-${fmt}`);
+      if (!(window.pywebview && window.pywebview.api)) {
+        if (btn) { const prev = btn.innerText; btn.innerText = 'Indisponível no preview'; setTimeout(() => btn.innerText = prev, 2000); }
+        return;
+      }
+      const prevHTML = btn ? btn.innerHTML : '';
+      try {
+        const result = await window.pywebview.api.export_history(fmt);
+        if (!btn) return;
+        if (result && result.ok) btn.innerText = 'Exportado!';
+        else if (result && result.cancelled) btn.innerText = 'Cancelado';
+        else btn.innerText = `Erro: ${(result && result.error) || 'desconhecido'}`;
+      } catch (err) {
+        console.error('export_history falhou:', err);
+        if (btn) btn.innerText = 'Erro ao exportar';
+      } finally {
+        if (btn) setTimeout(() => { btn.innerHTML = prevHTML; }, 2200);
+      }
     }
 
     async function loadHistory() {
@@ -1592,6 +1673,8 @@
       }
       if (emptyEl) emptyEl.style.display = 'none';
       if (dataEl) dataEl.style.display = 'block';
+
+      renderBurnRate(hist.burn_rate);
 
       const s = hist.stats;
       document.getElementById('hist-peak-pct').innerText = `${s.peak_pct}%`;

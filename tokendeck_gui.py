@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
+import csv
 import ctypes
 from datetime import datetime
 import json
@@ -38,6 +39,60 @@ MUTEX_BRIDGE_NAME = "Local\\TokenDeckUsbBridge"
 DEVICE_CONFIG_FILE = _REPO_ROOT / "daemon" / "device_config.json"
 HISTORY_FILE = _REPO_ROOT / "daemon" / "history.jsonl"
 HISTORY_LOG_INTERVAL = 300  # seconds; mirrors usage_serial_bridge_windows.py's own sampling rate
+
+_PT_WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+
+
+def _format_pt_date(ts: float) -> str:
+    dt = datetime.fromtimestamp(ts)
+    return f"{_PT_WEEKDAYS[dt.weekday()]} {dt.day:02d}/{dt.month:02d}"
+
+
+def _weekly_series(records: list[dict], provider: str) -> list[tuple[float, float]]:
+    """(ts, weekly_pct) pairs for one provider, sorted ascending by ts."""
+    pts = []
+    for rec in records:
+        data = rec.get(provider)
+        if data and data.get("w") is not None:
+            pts.append((rec["ts"], float(data["w"])))
+    pts.sort(key=lambda p: p[0])
+    return pts
+
+
+def _project_burn_rate(pts: list[tuple[float, float]]) -> dict | None:
+    """Linear burn-rate projection for when a provider's weekly % hits 100.
+
+    Trims to the segment after the most recent weekly reset (a >15pp drop
+    between consecutive samples) so an old cycle's higher numbers never
+    drag the rate down right after a reset. Returns None when there isn't
+    enough same-cycle data yet to say anything useful.
+    """
+    start = 0
+    for i in range(len(pts) - 1):
+        if pts[i][1] - pts[i + 1][1] > 15:
+            start = i + 1
+    pts = pts[start:]
+    if len(pts) < 2:
+        return None
+
+    (t0, w0), (t1, w1) = pts[0], pts[-1]
+    span_days = (t1 - t0) / 86400.0
+    if span_days < 0.1:  # need a few hours of spread for a sane rate
+        return None
+
+    rate_per_day = (w1 - w0) / span_days
+    if w1 >= 100:
+        return {"rate_per_day": round(rate_per_day, 1), "projected": False, "already_full": True}
+    if rate_per_day <= 0.5:  # flat or decreasing — nothing to project
+        return {"rate_per_day": round(rate_per_day, 1), "projected": False}
+
+    days_to_100 = (100.0 - w1) / rate_per_day
+    return {
+        "rate_per_day": round(rate_per_day, 1),
+        "projected": True,
+        "days_to_100": round(days_to_100, 1),
+        "projected_date": _format_pt_date(t1 + days_to_100 * 86400.0),
+    }
 
 
 def is_bridge_running() -> bool:
@@ -274,7 +329,10 @@ class TokenDeckBridgeApi:
         except OSError:
             pass
 
-        empty = {"has_data": False, "days": [], "series": {"claude": [], "codex": [], "gemini": []}, "stats": None}
+        empty = {
+            "has_data": False, "days": [], "series": {"claude": [], "codex": [], "gemini": []},
+            "stats": None, "burn_rate": {},
+        }
         if not records:
             return empty
 
@@ -319,6 +377,10 @@ class TokenDeckBridgeApi:
             })
 
         avg_daily = round(sum(daily_avgs) / len(daily_avgs), 1) if daily_avgs else 0.0
+        burn_rate = {
+            provider: _project_burn_rate(_weekly_series(records, provider))
+            for provider in ("claude", "codex", "gemini")
+        }
         return {
             "has_data": True,
             "days": days_out[-days:],
@@ -331,7 +393,70 @@ class TokenDeckBridgeApi:
                 "resets": reset_count,
                 "sample_count": len(records),
             },
+            "burn_rate": burn_rate,
         }
+
+    def export_history(self, fmt: str = "json") -> dict:
+        """Export daemon/history.jsonl's raw samples as CSV or JSON via a
+        native save-file dialog. The aggregated Histórico view already
+        derives everything from this file; this just hands the raw data out
+        for anyone who wants to analyze it themselves."""
+        fmt = fmt if fmt in ("csv", "json") else "json"
+        try:
+            records: list[dict] = []
+            if HISTORY_FILE.exists():
+                for line in HISTORY_FILE.read_text(encoding="utf-8").splitlines():
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        records.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        continue
+        except OSError as exc:
+            return {"ok": False, "error": str(exc)}
+
+        if not records:
+            return {"ok": False, "error": "Sem dados de histórico ainda."}
+
+        default_name = f"tokendeck-history-{datetime.now().strftime('%Y%m%d-%H%M')}.{fmt}"
+        try:
+            target_window = webview.windows[0] if webview.windows else None
+            if target_window is None:
+                return {"ok": False, "error": "Janela indisponível."}
+            result = target_window.create_file_dialog(
+                webview.SAVE_DIALOG, save_filename=default_name,
+                file_types=(f"{fmt.upper()} (*.{fmt})",),
+            )
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+
+        if not result:
+            return {"ok": False, "cancelled": True}
+        dest = Path(result[0] if isinstance(result, (list, tuple)) else result)
+
+        try:
+            if fmt == "json":
+                dest.write_text(json.dumps(records, indent=2), encoding="utf-8")
+            else:
+                with dest.open("w", encoding="utf-8", newline="") as f:
+                    writer = csv.writer(f)
+                    writer.writerow([
+                        "timestamp", "datetime",
+                        "claude_s", "claude_w", "codex_s", "codex_w", "gemini_s", "gemini_w",
+                    ])
+                    for rec in records:
+                        ts = rec.get("ts", 0)
+                        row = [ts, datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")]
+                        for provider in ("claude", "codex", "gemini"):
+                            data = rec.get(provider) or {}
+                            row.append(data.get("s", ""))
+                            row.append(data.get("w", ""))
+                        writer.writerow(row)
+        except OSError as exc:
+            return {"ok": False, "error": str(exc)}
+
+        return {"ok": True, "path": str(dest)}
 
     def toggle_bridge(self) -> bool:
         if is_bridge_running():
