@@ -1192,9 +1192,11 @@
 
     // Traduz o campo "st" do payload num chip visível, pra não deixar "0%"
     // ambíguo entre "sem uso" e "não conseguimos ler o dado" (token expirado,
-    // CLI não instalada, rede fora, provedor desativado nas Configurações).
+    // CLI não instalada, rede fora). Não inclui "disabled": quando o usuário
+    // desativa um provedor nas Configurações, applyConfigToUI() já esconde
+    // o card inteiro, e a GUI nunca envia st:"disabled" por conta própria
+    // (só o payload que o bridge manda pro CYD faz isso).
     const STATUS_CHIP_TEXT = {
-      disabled: ["Desativado nas Configurações", "off"],
       unavailable: ["CLI não encontrada", "warn"],
       no_token: ["Sem login — rode o CLI do provedor", "warn"],
       token_expired: ["Token expirado — faça login de novo", "err"],
