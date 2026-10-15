@@ -1257,11 +1257,15 @@
     }
 
     async function refreshNow() {
-      if (window.pywebview && window.pywebview.api) {
-        const icon = document.getElementById('icon-refresh');
-        if (icon) icon.classList.add('animate-spin');
+      if (!(window.pywebview && window.pywebview.api)) return;
+      const icon = document.getElementById('icon-refresh');
+      if (icon) icon.classList.add('animate-spin');
+      try {
         const data = await window.pywebview.api.get_status();
         renderData(data);
+      } catch (err) {
+        console.error('get_status falhou:', err);
+      } finally {
         if (icon) icon.classList.remove('animate-spin');
       }
     }
@@ -1526,7 +1530,17 @@
 
     async function loadHistory() {
       const live = window.pywebview && window.pywebview.api;
-      const hist = live ? await window.pywebview.api.get_history(7) : buildMockHistory();
+      let hist;
+      if (live) {
+        try {
+          hist = await window.pywebview.api.get_history(7);
+        } catch (err) {
+          console.error('get_history falhou:', err);
+          hist = buildMockHistory();
+        }
+      } else {
+        hist = buildMockHistory();
+      }
       const emptyEl = document.getElementById('hist-empty');
       const dataEl = document.getElementById('hist-data');
       if (!hist || !hist.has_data) {

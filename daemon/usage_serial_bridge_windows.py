@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import ctypes
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -19,11 +20,28 @@ if str(_REPO_ROOT) not in sys.path:
 
 from daemon.claude_usage_daemon_windows import AuthError, poll_api, read_token
 from daemon.codex_usage_daemon_windows import read_codex_payload
+from daemon.usage_common import append_history_record
 
 BAUDRATE = 115200
 UPDATE_SECONDS = 5
 CLAUDE_REFRESH_SECONDS = 60
 GEMINI_REFRESH_SECONDS = 60
+
+MUTEX_BRIDGE_NAME = "Local\\TokenDeckUsbBridge"
+
+
+def _acquire_singleton_mutex():
+    """Create and hold the named mutex tokendeck_gui.py's is_bridge_running()
+    checks for. Returning early (not re-acquiring on retry) is intentional:
+    Windows releases the mutex automatically when this process exits or
+    crashes, so no explicit CloseHandle/cleanup is needed. The handle is
+    returned (not just discarded) only so the caller can keep a reference
+    alive for the life of the process — ctypes does not auto-close it.
+    """
+    try:
+        return ctypes.windll.kernel32.CreateMutexW(None, False, MUTEX_BRIDGE_NAME)
+    except Exception:
+        return None
 
 
 def _activity_roots() -> dict[str, Path]:
@@ -172,7 +190,6 @@ def read_gemini_payload() -> dict:
 DEVICE_CONFIG_FILE = _REPO_ROOT / "daemon" / "device_config.json"
 HISTORY_FILE = _REPO_ROOT / "daemon" / "history.jsonl"
 HISTORY_INTERVAL_SECONDS = 300  # one sample every 5 minutes
-HISTORY_MAX_LINES = 4000  # ~2 weeks at 5-min resolution
 
 
 def _read_device_config() -> dict:
@@ -222,8 +239,10 @@ def _clock_fields(clock_mode: str) -> dict:
 def _append_history(payload_list: list[dict]) -> None:
     """Append one usage sample per provider to the local history log.
 
-    Best-effort: a write failure (disk full, locked file) must never take
-    down the bridge's main loop, so every error is swallowed.
+    Delegates to usage_common.append_history_record, which locks a sibling
+    .lock file around the read-modify-write so this (the bridge, running as
+    its own process) never races tokendeck_gui.py's direct-query fallback,
+    which can write the same file concurrently.
     """
     record: dict = {"ts": time.time()}
     for payload in payload_list:
@@ -231,15 +250,7 @@ def _append_history(payload_list: list[dict]) -> None:
         if provider not in ("claude", "codex", "gemini"):
             continue
         record[provider] = {"s": payload.get("s"), "w": payload.get("w")} if payload.get("ok") else None
-    try:
-        HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with HISTORY_FILE.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(record) + "\n")
-        lines = HISTORY_FILE.read_text(encoding="utf-8").splitlines()
-        if len(lines) > HISTORY_MAX_LINES:
-            HISTORY_FILE.write_text("\n".join(lines[-HISTORY_MAX_LINES:]) + "\n", encoding="utf-8")
-    except OSError:
-        pass
+    append_history_record(HISTORY_FILE, record)
 
 
 def payloads(claude_payload: dict | None, gemini_payload: dict | None,
@@ -281,6 +292,12 @@ def payloads(claude_payload: dict | None, gemini_payload: dict | None,
 
 def main() -> None:
     print("TokenDeck USB bridge iniciado. Pressione Ctrl+C para parar.")
+    # Held for the life of this process so tokendeck_gui.py's
+    # is_bridge_running() can detect us; Windows releases it automatically
+    # on exit/crash. Keep the reference even though it's unused — letting it
+    # go out of scope doesn't close the handle, but naming it documents why
+    # this call exists here.
+    _singleton_mutex = _acquire_singleton_mutex()
     device: serial.Serial | None = None
     claude_payload: dict | None = None
     gemini_payload: dict | None = None

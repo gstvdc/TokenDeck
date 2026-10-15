@@ -27,6 +27,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 from daemon.claude_usage_daemon_windows import AuthError, poll_api, read_token
 from daemon.codex_usage_daemon_windows import read_codex_payload
+from daemon.usage_common import append_history_record
 from daemon.usage_serial_bridge_windows import (
     activity_markers,
     find_port,
@@ -245,12 +246,7 @@ class TokenDeckBridgeApi:
         record = {"ts": now}
         for name, data in (("codex", codex_data), ("claude", claude_data), ("gemini", gemini_data)):
             record[name] = {"s": data.get("s"), "w": data.get("w")} if data.get("ok") else None
-        try:
-            HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
-            with HISTORY_FILE.open("a", encoding="utf-8") as f:
-                f.write(json.dumps(record) + "\n")
-        except OSError:
-            pass
+        append_history_record(HISTORY_FILE, record)
 
     def get_history(self, days: int = 7) -> dict:
         """Resumo diário + série temporal para a tela de Histórico.

@@ -1,10 +1,11 @@
 #include "../../hal/power_hal.h"
 #include <Arduino.h>
 
-// No CYD, o gesto de pareamento usa um toque longo na tela. O núcleo recebe
-// o evento LONG após 1,5 s e arma o pareamento após outros 1,5 s; ao soltar
-// o dedo, os vínculos antigos são limpos e o anúncio Bluetooth é reiniciado.
-extern bool cyd_touch_is_pressed(void);
+// cyd_28 has no PWR key and talks to the host over USB serial, not BLE — see
+// CLAUDE.md's "Hardware (critical pins)" section. There is no pairing
+// gesture on this board; pair_tick() in main.cpp is compiled out entirely
+// under USE_USB_SERIAL_BRIDGE, which this board's env always defines. These
+// stubs exist only to satisfy the power_hal contract.
 
 void power_hal_init(void) {}
 

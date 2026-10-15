@@ -275,3 +275,41 @@ async def poll_api(token: str, *, expired_exc: type[Exception] = TokenExpired,
 
 def _default_log(msg: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
+
+
+HISTORY_MAX_LINES = 4000  # ~2 weeks at 5-min resolution
+
+
+def append_history_record(history_file: Path, record: dict) -> None:
+    """Append one JSONL record to ``history_file``, trimming to HISTORY_MAX_LINES.
+
+    The USB bridge and the GUI's own direct-query fallback (tokendeck_gui.py)
+    can both write this file from separate processes. Without coordination,
+    one process's read-modify-write (append, then re-read and trim) can land
+    between another's read and write and silently drop a line. A sibling
+    ``.lock`` file, held with an OS-level byte lock for the whole operation,
+    serializes the two. Windows-only (msvcrt) — both callers are Windows
+    daemons/GUI today. Best-effort: any failure here must never take down
+    the caller's main loop.
+    """
+    import msvcrt
+
+    lock_path = history_file.with_name(history_file.name + ".lock")
+    try:
+        history_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(lock_path, "a+b") as lock_f:
+            lock_f.seek(0)
+            msvcrt.locking(lock_f.fileno(), msvcrt.LK_LOCK, 1)
+            try:
+                with history_file.open("a", encoding="utf-8") as f:
+                    f.write(json.dumps(record) + "\n")
+                lines = history_file.read_text(encoding="utf-8").splitlines()
+                if len(lines) > HISTORY_MAX_LINES:
+                    history_file.write_text(
+                        "\n".join(lines[-HISTORY_MAX_LINES:]) + "\n", encoding="utf-8"
+                    )
+            finally:
+                lock_f.seek(0)
+                msvcrt.locking(lock_f.fileno(), msvcrt.LK_UNLCK, 1)
+    except OSError:
+        pass
