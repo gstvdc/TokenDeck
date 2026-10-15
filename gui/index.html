@@ -298,13 +298,16 @@
       position:absolute; top:3px; left:3px; width:17px; height:17px; border-radius:50%; background:#45474d;
       transition: transform .25s cubic-bezier(0.16, 1, 0.3, 1), background .2s ease, box-shadow .25s ease; display:block;
     }
-    .rocker.on i { transform: translateX(21px); }
-    .rocker.on.phosphor { border-color:#8a6a3a; box-shadow: 0 0 12px -1px rgba(255,180,84,.6); }
-    .rocker.on.phosphor i { background:#ffb454; box-shadow: 0 0 9px rgba(255,180,84,.85); }
-    .rocker.on.teal { border-color:#3d6b57; box-shadow: 0 0 12px -1px rgba(95,179,145,.6); }
-    .rocker.on.teal i { background:#5fb391; box-shadow: 0 0 9px rgba(95,179,145,.85); }
-    .rocker.on.violet { border-color:#5c4f77; box-shadow: 0 0 12px -1px rgba(171,142,207,.6); }
-    .rocker.on.violet i { background:#ab8ecf; box-shadow: 0 0 9px rgba(171,142,207,.85); }
+    /* translateX(19px): track content width is 42px (44px border-box minus the
+       1px border each side), so left:3px + translateX(19px) + 17px knob = 39px,
+       leaving the same 3px inset on the right as the knob has on the left when off. */
+    .rocker.on i { transform: translateX(19px); }
+    .rocker.on.phosphor { border-color:#8a6a3a; }
+    .rocker.on.phosphor i { background:#ffb454; }
+    .rocker.on.teal { border-color:#3d6b57; }
+    .rocker.on.teal i { background:#5fb391; }
+    .rocker.on.violet { border-color:#5c4f77; }
+    .rocker.on.violet i { background:#ab8ecf; }
 
     /* ---------- stepper (setup) ---------- */
     .step { display:flex; justify-content:center; }
