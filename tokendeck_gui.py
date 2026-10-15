@@ -211,10 +211,14 @@ class TokenDeckBridgeApi:
                     token = read_token()
                     if token:
                         self.cached_claude = asyncio.run(poll_api(token))
+                        if self.cached_claude is None:
+                            self.cached_claude = {"ok": False, "st": "network_error"}
                     else:
-                        self.cached_claude = None
+                        self.cached_claude = {"ok": False, "st": "no_token"}
+                except AuthError:
+                    self.cached_claude = {"ok": False, "st": "token_expired"}
                 except Exception:
-                    self.cached_claude = None
+                    self.cached_claude = {"ok": False, "st": "network_error"}
                 self.next_claude_poll = now_m + 60
             claude_data = self.cached_claude or {"ok": False}
             active_provider = self.active_cyd_provider

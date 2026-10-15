@@ -185,6 +185,15 @@
     /* ---------- config page: 2x2 grid with ruled dividers ---------- */
     .cfg-grid { display: grid; grid-template-columns: 1fr; row-gap: 1.5rem; }
     .cfg-line-v, .cfg-line-h { display: none; }
+    .status-chip {
+      display: inline-flex; align-items: center; gap: 4px; margin-top: 6px;
+      font-family: 'DM Mono', monospace; font-size: 10.5px; font-weight: 600;
+      letter-spacing: .02em; padding: 2px 8px; border-radius: 999px;
+      border: 1px solid currentColor; width: fit-content;
+    }
+    .status-chip.warn { color: #eab308; background: rgba(234,179,8,.08); }
+    .status-chip.err { color: #e0685f; background: rgba(224,104,95,.08); }
+    .status-chip.off { color: #6c6e74; background: rgba(108,110,116,.08); }
     @media (min-width: 1024px) {
       .cfg-grid {
         grid-template-columns: 1fr 1px 1fr;
@@ -498,6 +507,7 @@
               <span id="codex-cyd-badge" class="font-mono text-[11px] font-bold text-[#5fb391] flex items-center gap-1"></span>
             </div>
             <p class="text-xs text-[#9a9ca3] mt-1.5">OpenAI Session Logs &amp; Rate Limits</p>
+            <span id="codex-status-chip" class="status-chip" style="display:none;"></span>
 
             <div class="chart-section mt-4 bg-[#0e0f11]/85 border border-[#34363b] rounded-lg p-4">
               <div class="chart-title flex items-center gap-1.5 text-xs font-bold font-mono uppercase tracking-wide text-[#9a9ca3] mb-3">
@@ -599,6 +609,7 @@
               <span id="claude-cyd-badge" class="font-mono text-[11px] font-bold text-[#ffb454] flex items-center gap-1"></span>
             </div>
             <p class="text-xs text-[#9a9ca3] mt-1.5">Anthropic Claude Code Account &amp; Quota</p>
+            <span id="claude-status-chip" class="status-chip" style="display:none;"></span>
 
             <div class="chart-section mt-4 bg-[#0e0f11]/85 border border-[#34363b] rounded-lg p-4">
               <div class="chart-title flex items-center gap-1.5 text-xs font-bold font-mono uppercase tracking-wide text-[#9a9ca3] mb-3">
@@ -700,6 +711,7 @@
               <span id="gemini-cyd-badge" class="font-mono text-[11px] font-bold text-[#ab8ecf] flex items-center gap-1"></span>
             </div>
             <p class="text-xs text-[#9a9ca3] mt-1.5">Google Gemini Models (Flash &amp; Pro)</p>
+            <span id="gemini-status-chip" class="status-chip" style="display:none;"></span>
 
             <div class="chart-section mt-4 bg-[#0e0f11]/85 border border-[#34363b] rounded-lg p-4">
               <div class="chart-title flex items-center gap-1.5 text-xs font-bold font-mono uppercase tracking-wide text-[#9a9ca3] mb-3">
@@ -1178,6 +1190,31 @@
       return `${days}d ${remHours}h (${mins} min)`;
     }
 
+    // Traduz o campo "st" do payload num chip visível, pra não deixar "0%"
+    // ambíguo entre "sem uso" e "não conseguimos ler o dado" (token expirado,
+    // CLI não instalada, rede fora, provedor desativado nas Configurações).
+    const STATUS_CHIP_TEXT = {
+      disabled: ["Desativado nas Configurações", "off"],
+      unavailable: ["CLI não encontrada", "warn"],
+      no_token: ["Sem login — rode o CLI do provedor", "warn"],
+      token_expired: ["Token expirado — faça login de novo", "err"],
+      network_error: ["Erro de rede ao consultar a API", "err"],
+    };
+
+    function setStatusChip(provider, data) {
+      const chip = document.getElementById(`${provider}-status-chip`);
+      if (!chip) return;
+      const info = !data || data.ok ? null : STATUS_CHIP_TEXT[data.st];
+      if (!info) {
+        chip.style.display = 'none';
+        return;
+      }
+      const [text, cls] = info;
+      chip.textContent = text;
+      chip.className = `status-chip ${cls}`;
+      chip.style.display = 'inline-flex';
+    }
+
     // Cor de severidade da barra: acima de 85% fica crítico (vermelho), acima de
     // 60% fica em atenção (âmbar); abaixo disso mantém a cor própria do provedor.
     function severityColor(pct) {
@@ -1310,6 +1347,7 @@
 
       // Codex
       const codex = data.codex || {};
+      setStatusChip('codex', codex);
       const c5h = codex.s || 0;
       const cWk = codex.w || 0;
       document.getElementById('codex-pct-5h').innerText = `${c5h}%`;
@@ -1332,6 +1370,7 @@
 
       // Claude
       const claude = data.claude || {};
+      setStatusChip('claude', claude);
       const cl5h = claude.s || 0;
       const clWk = claude.w || 0;
       document.getElementById('claude-pct-5h').innerText = `${cl5h}%`;
@@ -1354,6 +1393,7 @@
 
       // Gemini
       const gemini = data.gemini || {};
+      setStatusChip('gemini', gemini);
       const g5h = gemini.s || 0;
       const gWk = gemini.w || 0;
       document.getElementById('gemini-pct-5h').innerText = `${g5h}%`;

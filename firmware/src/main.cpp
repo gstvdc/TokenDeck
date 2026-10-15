@@ -98,6 +98,18 @@ static void my_touch_cb(lv_indev_t* indev, lv_indev_data_t* data) {
     }
 }
 
+// The host (daemon) is a trusted-but-fallible process, not a trusted one:
+// a bug on its side, or a stale/garbled payload, must not hand the UI
+// numbers that don't make sense (negative percentages, >100%, a clock
+// format that's neither 12 nor 24h). Clamp at the boundary instead of
+// relying solely on LVGL's own bar clamping as the only safety net.
+static inline float clampf(float v, float lo, float hi) {
+    return v < lo ? lo : (v > hi ? hi : v);
+}
+static inline int clampi(int v, int lo, int hi) {
+    return v < lo ? lo : (v > hi ? hi : v);
+}
+
 // Parse a JSON line into UsageData.
 static bool parse_json(const char* json, UsageData* out) {
     JsonDocument doc;
@@ -123,21 +135,22 @@ static bool parse_json(const char* json, UsageData* out) {
         return false;
     }
 
-    out->session_pct = doc["s"] | 0.0f;
+    out->session_pct = clampf(doc["s"] | 0.0f, 0.0f, 100.0f);
     strlcpy(out->provider, doc["p"] | "claude", sizeof(out->provider));
     strlcpy(out->active, doc["a"] | "", sizeof(out->active));
     out->session_reset_mins = doc["sr"] | -1;
-    out->weekly_pct = doc["w"] | 0.0f;
+    out->weekly_pct = clampf(doc["w"] | 0.0f, 0.0f, 100.0f);
     out->weekly_reset_mins = doc["wr"] | -1;
     strlcpy(out->status, doc["st"] | "unknown", sizeof(out->status));
     out->chime = doc["c"] | false;   // absent (old daemon / chime off) → stay silent
     const char* acct = doc["acct"] | "pro";
     out->enterprise = (strcmp(acct, "ent") == 0);
-    out->time_pct = doc["tp"] | 0;
-    out->period_days = doc["pd"] | 30;
+    out->time_pct = clampi(doc["tp"] | 0, 0, 100);
+    out->period_days = clampi(doc["pd"] | 30, 1, 400);
     strlcpy(out->reset_date, doc["rd"] | "", sizeof(out->reset_date));
     out->clock_epoch = doc["t"] | 0L;
-    out->clock_fmt = doc["tf"] | 24;
+    int tf = doc["tf"] | 24;
+    out->clock_fmt = (tf == 12) ? 12 : 24;  // anything but 12 falls back to 24h
     out->ok = doc["ok"] | false;
     out->valid = true;
     return true;
@@ -160,6 +173,7 @@ static bool process_usage_json(const char* json) {
 #define CMD_BUF_SIZE 512
 static char cmd_buf[CMD_BUF_SIZE];
 static int cmd_pos = 0;
+static bool cmd_overflowed = false;
 
 static void send_screenshot() {
 #ifndef BOARD_HAS_PSRAM
@@ -203,6 +217,17 @@ static void check_serial_cmd() {
     while (Serial.available()) {
         char c = Serial.read();
         if (c == '\n' || c == '\r') {
+            if (cmd_overflowed) {
+                // The line was longer than CMD_BUF_SIZE-1: what's in cmd_buf
+                // is a truncated fragment, not the real payload. Processing
+                // it would risk parsing something that merely looks like
+                // valid JSON (e.g. the tail of one payload spliced with the
+                // start of the next). Discard it instead of acting on it.
+                Serial.println("CMD_OVERFLOW_DISCARDED");
+                cmd_pos = 0;
+                cmd_overflowed = false;
+                continue;
+            }
             cmd_buf[cmd_pos] = '\0';
             if (cmd_pos && cmd_buf[0] == '{') {
 #ifdef USE_USB_SERIAL_BRIDGE
@@ -220,6 +245,8 @@ static void check_serial_cmd() {
             cmd_pos = 0;
         } else if (cmd_pos < CMD_BUF_SIZE - 1) {
             cmd_buf[cmd_pos++] = c;
+        } else {
+            cmd_overflowed = true;
         }
     }
 }
