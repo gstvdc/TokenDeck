@@ -246,6 +246,7 @@ class TokenDeckBridgeApi:
 
         cached = self.read_cached_status()
         brightness = self.get_brightness()
+        reconnects = None
         if cached and bridge_active:
             payloads = cached.get("payloads", {})
             codex_data = payloads.get("codex", {})
@@ -255,6 +256,7 @@ class TokenDeckBridgeApi:
             source_mode = "Sincronizado via Bridge USB (COM4)"
             if "brightness" in cached:
                 brightness = cached["brightness"]
+            reconnects = cached.get("reconnects")
         else:
             source_mode = "Consulta Direta (Modo App)"
             codex_data = read_codex_payload() or {"ok": False}
@@ -295,6 +297,7 @@ class TokenDeckBridgeApi:
             "gemini": gemini_data,
             "markers": markers,
             "timestamp": time.time(),
+            "reconnects": reconnects,
         }
 
     def _maybe_log_history(self, codex_data: dict, claude_data: dict, gemini_data: dict) -> None:

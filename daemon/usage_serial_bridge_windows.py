@@ -306,6 +306,11 @@ def main() -> None:
     next_claude = 0.0
     next_gemini = 0.0
     next_history = 0.0
+    # Visible health signal for the GUI (see "reconnects" in latest_status.json):
+    # this device runs unattended for long stretches, so a climbing count here
+    # is the first sign of a flaky cable/port before the user notices a blank
+    # CYD screen. The first successful open is a connect, not a reconnect.
+    connect_count = 0
     try:
         while True:
             if device is None or not device.is_open:
@@ -326,6 +331,7 @@ def main() -> None:
                     device.dtr = False
                     device.rts = False
                     device.open()
+                    connect_count += 1
                     print(f"CYD conectada em {port}.")
                     time.sleep(0.25)
                 except serial.SerialException as exc:
@@ -382,6 +388,7 @@ def main() -> None:
                         "port": port,
                         "brightness": target_pct,
                         "payloads": {p["p"]: p for p in current_payloads},
+                        "reconnects": max(0, connect_count - 1),
                     }
                     status_path.write_text(json.dumps(status_data, indent=2), encoding="utf-8")
                 except Exception:

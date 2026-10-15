@@ -1333,9 +1333,15 @@
       const port = data.port;
       const pillSerial = document.getElementById('pill-serial');
       const textSerial = document.getElementById('pill-serial-text');
+      // reconnects só existe (não-null) quando a bridge está ativa e já
+      // reportou saúde da conexão; um valor crescente é o primeiro sinal de
+      // um cabo/porta instável antes de alguém notar a tela do CYD apagada.
+      const reconnects = data.reconnects;
+      const reconnectSuffix = (typeof reconnects === 'number' && reconnects > 0)
+        ? ` · ${reconnects} reconex${reconnects === 1 ? 'ão' : 'ões'}` : '';
       if (port) {
-        textSerial.innerText = `USB ${port} Conectada`;
-        pillSerial.className = "flex flex-col items-center gap-1 text-[#5fb391] w-[136px] flex-none";
+        textSerial.innerText = `USB ${port} Conectada${reconnectSuffix}`;
+        pillSerial.className = `flex flex-col items-center gap-1 ${reconnectSuffix ? 'text-[#e3a83b]' : 'text-[#5fb391]'} w-[136px] flex-none`;
       } else {
         textSerial.innerText = "USB Desconectado";
         pillSerial.className = "flex flex-col items-center gap-1 text-[#6c6e74] w-[136px] flex-none";

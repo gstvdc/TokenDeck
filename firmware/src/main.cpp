@@ -3,6 +3,7 @@
 #include <lvgl.h>
 #include <ArduinoJson.h>
 #include <esp_heap_caps.h>
+#include <esp_task_wdt.h>
 
 #include "data.h"
 #include "ui.h"
@@ -318,6 +319,16 @@ void setup() {
     Serial.printf("Dashboard ready (%s, %dx%d), waiting for data on BLE...\n",
 #endif
         board_caps().name, W, H);
+
+    // This device runs unattended for days/weeks. If loop() ever wedges
+    // (a stuck driver transaction, a bad render path), the only recovery
+    // today would be someone noticing a frozen screen and power-cycling it.
+    // Arm the hardware task watchdog once setup() has finished all the slow
+    // one-time init (display/touch bring-up, LVGL setup) — loop() resets it
+    // every pass, so only a genuine hang ever lets it expire and reboot.
+#define TOKENDECK_WDT_TIMEOUT_S 10
+    esp_task_wdt_init(TOKENDECK_WDT_TIMEOUT_S, true);  // panic => abort + reboot
+    esp_task_wdt_add(NULL);  // watch the task running loop() (Arduino's loopTask)
 }
 
 static ble_state_t last_ble_state = BLE_STATE_INIT;
@@ -369,6 +380,7 @@ static void pair_tick(void) {
 }
 
 void loop() {
+    esp_task_wdt_reset();
     idle_tick();
     lv_timer_handler();
     ui_tick_anim();
