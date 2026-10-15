@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          ".impeccable-mocks/painel-calibration-bench.html"
+        ],
+        "createdAt": "2026-10-15T18:14:34.100Z",
+        "reason": "annotation paragraph is exploratory-mock meta-commentary for the human reviewer, not shipped product UI copy"
+      }
+    ]
+  }
+}

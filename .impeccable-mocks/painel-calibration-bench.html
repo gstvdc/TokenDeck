@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TokenDeck — mock: bancada de calibração</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Fragment+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --chassis:#15161a; --panel:#1b1c20; --paneldeep:#121317; --screen:#0b0c0e;
+    --line:#2d2f34; --lineLit:#3a3d44; --ink:#e9eaed; --inkdim:#8a8d94; --inkfaint:#83868e;
+    --claude:#ffb454; --codex:#5fb391; --gemini:#ab8ecf;
+    --metal: linear-gradient(180deg,#1d1e23,#141519);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--chassis);color:var(--ink);
+    font-family:'DM Mono',monospace; min-height:100vh;}
+  body{padding:28px 32px 48px; display:flex; flex-direction:column; gap:22px;}
+
+  /* ---------- nameplate header: engraved strip, not a card ---------- */
+  .nameplate{
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom:1px solid var(--line); padding-bottom:10px;
+  }
+  .nameplate .mark{
+    font-family:'Fragment Mono',monospace; font-size:13px; font-weight:700;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--ink);
+  }
+  .nameplate .mark span{color:var(--inkfaint); font-weight:400; margin-left:10px; letter-spacing:.08em;}
+  .nameplate .serial{
+    font-size:11px; color:var(--inkfaint); letter-spacing:.08em; text-transform:uppercase;
+  }
+
+  /* ---------- tab rail: text + rule, no pill chrome ---------- */
+  .railrow{display:flex; align-items:center; gap:0; border-bottom:1px solid var(--line); padding:14px 0 18px;}
+  .rail{display:flex; gap:28px;}
+  .rail button{
+    background:none; border:none; font-family:inherit; font-size:11px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--inkfaint); padding:0 0 8px; cursor:pointer;
+    position:relative; top:1px;
+  }
+  .rail button.on{color:var(--ink); border-bottom:1px solid var(--ink);}
+
+  /* ================= PAINEL: mixing-console channel strip ================= */
+  .deck{
+    display:grid; grid-template-columns: 1.9fr .62fr .62fr; gap:1px;
+    background:var(--line); border:1px solid var(--line);
+  }
+  .chan{background:var(--panel); padding:20px 22px; position:relative; display:flex; flex-direction:column; gap:14px;}
+  .chan.aux{padding:16px 18px;}
+
+  .chan-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px;}
+  .chan-name{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--inkdim); font-weight:500;}
+  .chan.primary .chan-name{color:var(--ink); font-size:12px;}
+  .led{width:5px; height:5px; border-radius:50%; flex:none;}
+  .led.lit{box-shadow:0 0 0 1px rgba(0,0,0,.4);}
+
+  /* the scale: ticks run left->right, fill up to the % mark, numeral
+     sits ON the fill line like a liquid-level readout — no separate
+     "big number above small label" block */
+  .scale{position:relative;}
+  .scale-rail{
+    display:flex; height:30px; align-items:flex-end; gap:2px; position:relative;
+  }
+  .chan.aux .scale-rail{height:20px; gap:1.5px;}
+  .tick{flex:1; background:var(--screen); border-radius:1px; position:relative; height:100%;}
+  .tick i{display:block; position:absolute; bottom:0; left:0; right:0; border-radius:1px;}
+  .scale-foot{display:flex; justify-content:space-between; margin-top:5px;
+    font-size:11px; color:var(--inkfaint); letter-spacing:.05em;}
+  .scale-foot .read{
+    font-size:14px; color:var(--ink); letter-spacing:0; font-weight:500;
+    font-variant-numeric:tabular-nums;
+  }
+  .chan.primary .scale-foot .read{font-size:30px; line-height:1;}
+  .scale-foot .unit{font-size:11px; color:var(--inkfaint); margin-left:2px;}
+
+  .subline{display:flex; justify-content:space-between; font-size:11px; color:var(--inkfaint); letter-spacing:.04em;}
+  .subline b{color:var(--inkdim); font-weight:500;}
+
+  .chan-foot{
+    margin-top:auto; padding-top:10px; border-top:1px dashed var(--line);
+    display:flex; justify-content:space-between; font-size:11px; color:var(--inkfaint);
+    letter-spacing:.06em; text-transform:uppercase;
+  }
+  .chan-foot b{color:var(--inkdim); font-weight:500;}
+
+  /* weekly sub-scale, primary channel only — thinner rail under the main one */
+  .weekly{display:flex; flex-direction:column; gap:5px;}
+  .weekly .scale-rail{height:10px; gap:1.5px;}
+  .weekly .label-row{display:flex; justify-content:space-between; font-size:11px; color:var(--inkfaint);}
+  .weekly .label-row b{color:var(--inkdim); font-weight:500; font-variant-numeric:tabular-nums;}
+
+  /* ---------- status strip: engraved plate, not icon pills ---------- */
+  .status{
+    display:flex; align-items:center; gap:0; border:1px solid var(--line);
+    background:var(--paneldeep); font-size:11px; letter-spacing:.06em;
+  }
+  .status div{padding:9px 18px; border-right:1px solid var(--line); color:var(--inkdim);
+    text-transform:uppercase; display:flex; align-items:center; gap:7px;}
+  .status div:last-child{border-right:none;}
+  .status b{color:var(--ink); font-weight:500;}
+  .status .dot{width:4px; height:4px; border-radius:50%; background:var(--codex); flex:none;}
+
+  .annot{font-size:11px; color:var(--inkfaint); letter-spacing:.02em; max-width:68ch; line-height:1.6;}
+
+  .page{display:none; flex-direction:column; gap:22px;}
+  .page.on{display:flex;}
+
+  /* ---------- Config: plate rows, fader instead of a generic range pill ---------- */
+  .plate{border:1px solid var(--line); background:var(--panel);}
+  .prow{display:flex; align-items:center; justify-content:space-between; padding:14px 20px;
+    border-bottom:1px dashed var(--line); gap:20px;}
+  .prow:last-child{border-bottom:none;}
+  .prow .pname{font-size:12px; color:var(--ink); display:flex; align-items:center; gap:10px;}
+  .prow .pname .led{width:5px; height:5px; border-radius:50%;}
+  .prow .pmeta{font-size:11px; color:var(--inkfaint); letter-spacing:.04em; text-transform:uppercase;}
+
+  .toggle{width:38px; height:18px; border:1px solid var(--line); background:var(--screen);
+    position:relative; cursor:pointer; flex:none;}
+  .toggle i{position:absolute; top:2px; left:2px; width:12px; height:12px; background:var(--inkfaint);}
+  .toggle.on{border-color:var(--lineLit);}
+  .toggle.on i{left:22px; background:var(--ink);}
+
+  .fader-row{padding:18px 20px;}
+  .fader-head{display:flex; justify-content:space-between; font-size:11px; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--inkdim); margin-bottom:10px;}
+  .fader-head b{color:var(--ink); font-variant-numeric:tabular-nums; font-weight:500;}
+  .fader-rail{display:flex; gap:2px; height:16px;}
+  .fader-rail .tick{flex:1; background:var(--screen);}
+  .fader-rail .tick.on{background:var(--ink);}
+
+  .seg-row{display:flex; gap:1px; border:1px solid var(--line);}
+  .seg{flex:1; padding:9px 14px; text-align:center; font-size:11px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--inkfaint); cursor:pointer; background:var(--screen);}
+  .seg.on{color:var(--ink); background:var(--panel);}
+  .seg + .seg{border-left:1px solid var(--line);}
+
+  /* ---------- Histórico: plate rows + measured chart, no card chrome ---------- */
+  .statline{display:grid; grid-template-columns:repeat(4,1fr); border:1px solid var(--line);}
+  .statline div{padding:14px 18px; border-right:1px solid var(--line);}
+  .statline div:last-child{border-right:none;}
+  .statline .k{font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--inkfaint);}
+  .statline .v{font-size:19px; color:var(--ink); margin-top:4px; font-variant-numeric:tabular-nums;}
+
+  .chartbox{border:1px solid var(--line); background:var(--screen); padding:16px 18px 10px;}
+  .chartbox svg{display:block; width:100%; height:140px;}
+  .chart-axis{font-size:11px; fill:var(--inkfaint); font-family:'DM Mono',monospace;}
+
+  .burnrow{display:flex; justify-content:space-between; align-items:baseline; padding:11px 0;
+    border-bottom:1px dashed var(--line); font-size:11px;}
+  .burnrow:last-child{border-bottom:none;}
+  .burnrow .bp{color:var(--inkdim); text-transform:uppercase; font-size:11px; letter-spacing:.06em;}
+  .burnrow .bv{font-variant-numeric:tabular-nums;}
+
+  /* ---------- Setup: numbered plates instead of circle+checkmark stepper ---------- */
+  .stepper{display:grid; grid-template-columns:repeat(4,1fr); border:1px solid var(--line);}
+  .stepcell{padding:14px 16px; border-right:1px solid var(--line); position:relative;}
+  .stepcell:last-child{border-right:none;}
+  .stepcell.done{background:var(--paneldeep);}
+  .stepcell.active{background:var(--panel);}
+  .stepnum{font-size:11px; color:var(--inkfaint); letter-spacing:.08em;}
+  .stepcell.active .stepnum, .stepcell.done .stepnum{color:var(--inkdim);}
+  .steplabel{font-size:11.5px; color:var(--inkfaint); margin-top:5px;}
+  .stepcell.active .steplabel{color:var(--ink);}
+  .stepcell.done .steplabel{color:var(--inkdim);}
+  .stepcell.done .steplabel::after{content:" ✓"; color:var(--codex);}
+
+  .setup-body{border:1px solid var(--line); background:var(--panel); padding:20px;}
+  .setup-body h3{margin:0 0 8px; font-size:13px; font-weight:500; color:var(--ink);}
+  .setup-body p{margin:0 0 16px; font-size:11.5px; color:var(--inkdim); line-height:1.6; max-width:62ch;}
+</style>
+</head>
+<body>
+
+  <div class="nameplate">
+    <div class="mark">TOKENDECK <span>· DESK UNIT MONITOR</span></div>
+    <div class="serial">CYD 2.8" · COM4 · REV 3</div>
+  </div>
+
+  <div class="railrow">
+    <div class="rail">
+      <button class="on" data-page="painel" onclick="showPage('painel')">Painel</button>
+      <button data-page="config" onclick="showPage('config')">Config</button>
+      <button data-page="historico" onclick="showPage('historico')">Histórico</button>
+      <button data-page="setup" onclick="showPage('setup')">Setup</button>
+    </div>
+  </div>
+
+  <!-- ===== Painel: 1 primary channel (active provider) + 2 aux channels ===== -->
+  <div class="page on" id="page-painel">
+  <div class="deck">
+
+    <div class="chan primary">
+      <div class="chan-head">
+        <span class="chan-name">Claude</span>
+        <span class="led lit" style="background:var(--claude)"></span>
+      </div>
+
+      <div class="scale">
+        <div class="scale-rail" id="r-claude"></div>
+        <div class="scale-foot">
+          <span><span class="read">68</span><span class="unit">%  janela 5h</span></span>
+          <span style="color:var(--inkfaint)">renova 2h 14m</span>
+        </div>
+      </div>
+
+      <div class="weekly">
+        <div class="label-row"><span>Semanal</span><b>41%</b></div>
+        <div class="scale-rail" id="r-claude-wk"></div>
+      </div>
+
+      <div class="chan-foot">
+        <span>Status <b>Allowed</b></span>
+        <span>Na tela CYD</span>
+      </div>
+    </div>
+
+    <div class="chan aux">
+      <div class="chan-head">
+        <span class="chan-name">Codex</span>
+        <span class="led" style="background:var(--codex)"></span>
+      </div>
+      <div class="scale">
+        <div class="scale-rail" id="r-codex"></div>
+        <div class="scale-foot">
+          <span><span class="read" style="font-size:18px">34</span><span class="unit">%</span></span>
+          <span style="font-size:11px">1h 02m</span>
+        </div>
+      </div>
+      <div class="subline"><span>Semanal</span><b>19%</b></div>
+      <div class="chan-foot"><span>Allowed</span></div>
+    </div>
+
+    <div class="chan aux">
+      <div class="chan-head">
+        <span class="chan-name">Gemini</span>
+        <span class="led" style="background:var(--gemini)"></span>
+      </div>
+      <div class="scale">
+        <div class="scale-rail" id="r-gemini"></div>
+        <div class="scale-foot">
+          <span><span class="read" style="font-size:18px">12</span><span class="unit">%</span></span>
+          <span style="font-size:11px">3h 40m</span>
+        </div>
+      </div>
+      <div class="subline"><span>Semanal</span><b>07%</b></div>
+      <div class="chan-foot"><span>Allowed</span></div>
+    </div>
+
+  </div>
+
+  <div class="status">
+    <div><span class="dot"></span>Bridge <b>Ativa</b></div>
+    <div>USB <b>COM4 Conectada</b></div>
+    <div>Brilho <b>80%</b></div>
+    <div>Consulta <b>Sincronizado via bridge</b></div>
+  </div>
+
+  <p class="annot">
+    Mock, direção "bancada de calibração": um canal primário (provedor ativo) em destaque,
+    com dois canais auxiliares compactos ao lado, como um mixer, não três cards iguais.
+    A escala de réguas substitui a barra de progresso lisa; o numeral fica embutido na
+    própria leitura em vez de empilhado como "número grande + rótulo pequeno" (padrão
+    banido pelo detector do Impeccable). Sem ícones decorativos, sem glow, sem cards com sombra.
+  </p>
+  </div>
+
+  <!-- ===== Config ===== -->
+  <div class="page" id="page-config">
+    <div class="plate">
+      <div class="prow">
+        <span class="pname"><span class="led" style="background:var(--claude)"></span>Claude</span>
+        <span class="pmeta">Ativo no CYD</span>
+        <div class="toggle on" onclick="this.classList.toggle('on')"><i></i></div>
+      </div>
+      <div class="prow">
+        <span class="pname"><span class="led" style="background:var(--codex)"></span>Codex / GPT</span>
+        <span class="pmeta">Habilitado</span>
+        <div class="toggle on" onclick="this.classList.toggle('on')"><i></i></div>
+      </div>
+      <div class="prow">
+        <span class="pname"><span class="led" style="background:var(--gemini)"></span>Gemini</span>
+        <span class="pmeta">Habilitado</span>
+        <div class="toggle on" onclick="this.classList.toggle('on')"><i></i></div>
+      </div>
+    </div>
+
+    <div class="plate">
+      <div class="fader-row">
+        <div class="fader-head"><span>Brilho da tela CYD</span><b>80%</b></div>
+        <div class="fader-rail" id="r-bright"></div>
+      </div>
+    </div>
+
+    <div class="plate">
+      <div class="fader-row" style="padding-bottom:10px;">
+        <div class="fader-head"><span>Relógio no título</span></div>
+      </div>
+      <div class="seg-row" style="margin:0 20px 18px; width:calc(100% - 40px);">
+        <div class="seg on">Desligado</div>
+        <div class="seg">24h</div>
+        <div class="seg">12h</div>
+      </div>
+    </div>
+
+    <p class="annot">Rockers e range sliders genéricos trocados por chaves e faders de placa: mesma função, vocabulário de painel de equipamento em vez de componente de formulário web.</p>
+  </div>
+
+  <!-- ===== Histórico ===== -->
+  <div class="page" id="page-historico">
+    <div class="statline">
+      <div><div class="k">Pico do período</div><div class="v">72%</div></div>
+      <div><div class="k">Média diária</div><div class="v">34%</div></div>
+      <div><div class="k">Resets</div><div class="v">6</div></div>
+      <div><div class="k">Amostras</div><div class="v">1932</div></div>
+    </div>
+
+    <div class="chartbox">
+      <svg viewBox="0 0 860 140" preserveAspectRatio="none">
+        <polyline fill="none" stroke="var(--claude)" stroke-width="1.6" points="0,95 120,70 240,55 360,30 480,60 600,20 720,45 860,15"/>
+        <polyline fill="none" stroke="var(--codex)" stroke-width="1.6" points="0,120 120,110 240,100 360,105 480,90 600,95 720,80 860,85"/>
+        <polyline fill="none" stroke="var(--gemini)" stroke-width="1.6" points="0,132 120,128 240,122 360,118 480,115 600,110 720,105 860,100"/>
+        <text x="0" y="12" class="chart-axis">100%</text>
+        <text x="0" y="138" class="chart-axis">0%</text>
+      </svg>
+    </div>
+
+    <div class="plate" style="padding:4px 20px;">
+      <div class="burnrow"><span class="bp">Claude</span><span class="bv">no ritmo atual, bate 100% em ~2.3d (qui 23/10)</span></div>
+      <div class="burnrow"><span class="bp">Codex</span><span class="bv" style="color:var(--inkdim)">ritmo estável, sem previsão de esgotar</span></div>
+      <div class="burnrow"><span class="bp">Gemini</span><span class="bv" style="color:var(--inkdim)">ritmo estável, sem previsão de esgotar</span></div>
+    </div>
+
+    <p class="annot">O traço fino com três cores já é a leitura de dado real; não precisa de card com sombra em volta. Linhas tracejadas fazem a separação que antes era feita por bordas de card.</p>
+  </div>
+
+  <!-- ===== Setup ===== -->
+  <div class="page" id="page-setup">
+    <div class="stepper">
+      <div class="stepcell done"><div class="stepnum">01</div><div class="steplabel">Parear placa</div></div>
+      <div class="stepcell active"><div class="stepnum">02</div><div class="steplabel">Provedores</div></div>
+      <div class="stepcell"><div class="stepnum">03</div><div class="steplabel">Autenticar</div></div>
+      <div class="stepcell"><div class="stepnum">04</div><div class="steplabel">Pronto</div></div>
+    </div>
+
+    <div class="setup-body">
+      <h3>Provedores</h3>
+      <p>A bridge lê o uso de cada provedor e reveza os cards na tela do CYD. Dá para mudar isso depois em Config.</p>
+      <div class="plate">
+        <div class="prow">
+          <span class="pname"><span class="led" style="background:var(--claude)"></span>Claude</span>
+          <div class="toggle on" onclick="this.classList.toggle('on')"><i></i></div>
+        </div>
+        <div class="prow">
+          <span class="pname"><span class="led" style="background:var(--codex)"></span>Codex / GPT</span>
+          <div class="toggle on" onclick="this.classList.toggle('on')"><i></i></div>
+        </div>
+        <div class="prow">
+          <span class="pname"><span class="led" style="background:var(--gemini)"></span>Gemini</span>
+          <div class="toggle on" onclick="this.classList.toggle('on')"><i></i></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="annot">Stepper trocado de círculo+check (padrão de onboarding genérico) para placas numeradas em sequência, lidas como um painel de etapas de um equipamento, não como um wizard de SaaS.</p>
+  </div>
+
+<script>
+  function showPage(name){
+    document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === 'page-' + name));
+    document.querySelectorAll('.rail button').forEach(b => b.classList.toggle('on', b.dataset.page === name));
+  }
+  function fader(id, pct, n){
+    const el = document.getElementById(id);
+    const lit = Math.round((pct/100) * n);
+    let html = '';
+    for (let i = 0; i < n; i++) html += `<div class="tick${i < lit ? ' on' : ''}"></div>`;
+    el.innerHTML = html;
+  }
+  fader('r-bright', 80, 40);
+</script>
+  // Render tick-scale rails: N ticks, filled proportionally, dimmed above the mark.
+  function rail(id, pct, color, n){
+    const el = document.getElementById(id);
+    const lit = Math.round((pct/100) * n);
+    let html = '';
+    for (let i = 0; i < n; i++) {
+      const on = i < lit;
+      const h = on ? (30 + (i/n)*70) : 22; // ticks get taller near the fill edge, like a real scale
+      html += `<div class="tick"><i style="height:${h}%; background:${on ? color : 'var(--line)'}"></i></div>`;
+    }
+    el.innerHTML = html;
+  }
+  rail('r-claude', 68, 'var(--claude)', 34);
+  rail('r-claude-wk', 41, 'var(--claude)', 48);
+  rail('r-codex', 34, 'var(--codex)', 22);
+  rail('r-gemini', 12, 'var(--gemini)', 22);
+</script>
+</body>
+</html>
